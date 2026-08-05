@@ -1,13 +1,13 @@
 {
   "name": "喵喵記帳",
   "short_name": "喵喵記帳",
-  "description": "貓咪風格記帳 App",
+  "description": "貓咪風格記帳 App（莫蘭迪配色版）",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f9fafb",
-  "theme_color": "#f59e0b",
+  "background_color": "#E8EFF3",
+  "theme_color": "#E8EFF3",
   "icons": [
     {
       "src": "icon-192.png",
