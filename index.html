@@ -7,9 +7,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="喵喵記帳">
   <meta name="theme-color" content="#E8EFF3">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="icon" href="icon-192.png">
   <title>喵喵記帳</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -21,6 +18,8 @@
             mist: { 50:'#F5F9FB', 100:'#E8EFF3', 200:'#D8E4EB', 300:'#C2D4DE', 400:'#A5C0CE', 500:'#89A8BA', 600:'#6D8CA0', 700:'#566E7F', 800:'#41535E', 900:'#2E3B44' },
             clay: { light:'#EBD8CD', DEFAULT:'#C08D75', dark:'#9C6C56' },
             sage: { light:'#D9E3D6', DEFAULT:'#94B396', dark:'#6D8E71' },
+            expense: { light:'#EFD0C2', DEFAULT:'#C98A69', dark:'#9C6045' },
+            income:  { light:'#C8DCD9', DEFAULT:'#7FADA6', dark:'#4F7F79' },
             cream: '#FDFBF7',
             ink: '#2A2A2A',
             fur: '#BE7B4A'
@@ -244,6 +243,8 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
+    const APP_VERSION = 'v1';
+
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
       { id: 'm',  label: '中',   value: 1 },
@@ -251,14 +252,324 @@
       { id: 'xl', label: '特大', value: 1.24 },
     ];
 
-    const INITIAL_CATEGORIES = [
-      { id: 'cat1', name: '餐飲', icon: '🐟', type: 'expense' },
-      { id: 'cat2', name: '交通', icon: '🐾', type: 'expense' },
-      { id: 'cat3', name: '購物', icon: '🧶', type: 'expense' },
-      { id: 'cat4', name: '娛樂', icon: '🎮', type: 'expense' },
-      { id: 'cat5', name: '薪資', icon: '💰', type: 'income' },
-      { id: 'cat6', name: '投資', icon: '📈', type: 'income' },
+    // 貓咪線條圖示（原創繪製）
+    const CAT_ICONS = {
+      bowl: '<path d="M11.28 8.16 L12.38 4.16 L15.28 6.36"/><path d="M20.72 8.16 L19.62 4.16 L16.72 6.36"/><circle cx="16" cy="11" r="5.2"/><path d="M12.82 10.38 q1.0 1.2 2.0 0"/><path d="M17.18 10.38 q1.0 1.2 2.0 0"/><path d="M14.50 13.18 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M5.5 20.5 h21 a10.5 6.5 0 0 1 -21 0 Z"/>',
+      run: '<path d="M6.8 12.6 L6.6 8.6 L9.8 10.8"/><path d="M14 11.6 L14.4 8 L11.2 10"/><circle cx="10.4" cy="13.4" r="4.3"/><circle cx="8.8" cy="13" r="0.85" fill="currentColor" stroke="none"/><circle cx="12" cy="13" r="0.85" fill="currentColor" stroke="none"/><path d="M14.4 11.6 q6.4 0.4 8.6 4.2 q1 1.8 0.4 4"/><path d="M13.6 17 q4.8 1.6 9.4 0.6"/><path d="M15.4 18.4 v5"/><path d="M18.6 18.8 v4.8"/><path d="M22.4 18.2 v5"/><path d="M23.2 15.4 q4.2 -0.8 3.8 -5.4"/>',
+      bag: '<path d="M5.52 9.44 L6.62 5.44 L9.52 7.64"/><path d="M14.48 9.44 L13.38 5.44 L10.48 7.64"/><circle cx="10" cy="12" r="4.8"/><path d="M6.98 11.42 q1.0 1.2 2.0 0"/><path d="M11.02 11.42 q1.0 1.2 2.0 0"/><path d="M8.50 14.02 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6 17.6 q0 5 4 7.4 q4 -2.4 4 -7.4"/><path d="M16.5 15.5 h10 l-1 10.5 h-8 Z"/><path d="M19 15.5 v-2 a2.5 2.5 0 0 1 5 0 v2"/>',
+      ball: '<path d="M6.02 9.44 L7.12 5.44 L10.02 7.64"/><path d="M14.98 9.44 L13.88 5.44 L10.98 7.64"/><circle cx="10.5" cy="12" r="4.8"/><circle cx="8.48" cy="11.42" r="0.72" fill="currentColor" stroke="none"/><circle cx="12.52" cy="11.42" r="0.72" fill="currentColor" stroke="none"/><path d="M9.00 14.02 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.5 17.4 q0 5.2 4 7.6 q4 -2.4 4 -7.6"/><circle cx="22.5" cy="20" r="5.4"/><path d="M18.2 16.8 q4.8 2.4 8 6.6"/><path d="M23.4 14.8 q-3 5 -1.4 10.4"/>',
+      coin: '<path d="M6.02 9.44 L7.12 5.44 L10.02 7.64"/><path d="M14.98 9.44 L13.88 5.44 L10.98 7.64"/><circle cx="10.5" cy="12" r="4.8"/><circle cx="8.48" cy="11.42" r="0.72" fill="currentColor" stroke="none"/><circle cx="12.52" cy="11.42" r="0.72" fill="currentColor" stroke="none"/><path d="M9.00 14.02 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.5 17.4 q0 5.2 4 7.6 q4 -2.4 4 -7.6"/><circle cx="22.5" cy="19.5" r="5.6"/><path d="M22.5 16 v7"/><path d="M20.6 17.8 h3.8"/><path d="M20.6 21.2 h3.8"/>',
+      chart: '<path d="M5.15 11.59 L6.25 7.59 L9.15 9.79"/><path d="M13.85 11.59 L12.75 7.59 L9.85 9.79"/><circle cx="9.5" cy="14" r="4.6"/><circle cx="7.57" cy="13.45" r="0.69" fill="currentColor" stroke="none"/><circle cx="11.43" cy="13.45" r="0.69" fill="currentColor" stroke="none"/><path d="M8.00 15.93 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M5.6 19.2 q0 4.6 3.9 6.8 q3.9 -2.2 3.9 -6.8"/><path d="M16 22 L20 16.4 L23 19.2 L27.4 11.6"/><path d="M23.6 11.6 H27.6 V15.4"/>',
+      sleep: '<path d="M4.5 20.5 a10 6.5 0 1 1 20 0 a10 6.5 0 0 1 -20 0"/><path d="M9.6 16.4 L10.4 12.8 L13.4 15.2"/><path d="M16.6 15.4 L17.2 12.6 L19.4 14.8"/><path d="M11.6 19.2 q1.1 1.2 2.2 0"/><path d="M16.4 19.2 q1.1 1.2 2.2 0"/><path d="M13.7 21.2 q0.8 0.9 1.6 0"/><path d="M24.2 22.4 q4 0.4 3.4 -3.8"/>',
+      loaf: '<path d="M9.4 15.2 L10.4 10 L14.6 13"/><path d="M22.6 15.2 L21.6 10 L17.4 13"/><path d="M6 23.5 a10 8.5 0 1 1 20 0 Z"/><circle cx="13.2" cy="17" r="0.95" fill="currentColor" stroke="none"/><circle cx="18.8" cy="17" r="0.95" fill="currentColor" stroke="none"/><path d="M14.5 19.6 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.6 17.4 L2.6 16.4"/><path d="M6.6 19.6 L2.6 20"/><path d="M25.4 17.4 L29.4 16.4"/><path d="M25.4 19.6 L29.4 20"/>',
+      sit: '<path d="M7.90 7.80 L9.00 3.80 L11.90 6.00"/><path d="M17.10 7.80 L16.00 3.80 L13.10 6.00"/><circle cx="12.5" cy="10.5" r="5"/><circle cx="10.40" cy="9.90" r="0.75" fill="currentColor" stroke="none"/><circle cx="14.60" cy="9.90" r="0.75" fill="currentColor" stroke="none"/><path d="M11.00 12.60 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M7.6 16 q-2 5.6 0.4 9.4 q4.6 1.6 9 0 q2.4 -3.8 0.4 -9.4"/><path d="M17.4 25 q6.6 -0.6 5.4 -7.8"/>',
+      heart: '<path d="M6.02 9.44 L7.12 5.44 L10.02 7.64"/><path d="M14.98 9.44 L13.88 5.44 L10.98 7.64"/><circle cx="10.5" cy="12" r="4.8"/><path d="M7.48 11.42 q1.0 1.2 2.0 0"/><path d="M11.52 11.42 q1.0 1.2 2.0 0"/><path d="M9.00 14.02 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.5 17.4 q0 5.2 4 7.6 q4 -2.4 4 -7.6"/><path d="M22 25 q-5.6 -3.8 -5.6 -7.6 a3 3 0 0 1 5.6 -1.6 a3 3 0 0 1 5.6 1.6 q0 3.8 -5.6 7.6 Z"/>',
+      laptop: '<path d="M6.65 7.09 L7.75 3.09 L10.65 5.29"/><path d="M15.35 7.09 L14.25 3.09 L11.35 5.29"/><circle cx="11" cy="9.5" r="4.6"/><circle cx="9.07" cy="8.95" r="0.69" fill="currentColor" stroke="none"/><circle cx="12.93" cy="8.95" r="0.69" fill="currentColor" stroke="none"/><path d="M9.50 11.43 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M7.4 14 q0.6 2.6 3.6 3.4"/><path d="M8.5 24.5 L10.5 16.5 h13 l2 8 Z"/><path d="M5.5 26.6 h23"/>',
+      health: '<path d="M6.02 9.44 L7.12 5.44 L10.02 7.64"/><path d="M14.98 9.44 L13.88 5.44 L10.98 7.64"/><circle cx="10.5" cy="12" r="4.8"/><path d="M7.48 11.42 q1.0 1.2 2.0 0"/><path d="M11.52 11.42 q1.0 1.2 2.0 0"/><path d="M9.00 14.02 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.5 17.4 q0 5.2 4 7.6 q4 -2.4 4 -7.6"/><rect x="17" y="14.5" width="10.5" height="10.5" rx="2.4"/><path d="M22.25 17 v5.5"/><path d="M19.5 19.75 h5.5"/>',
+      book: '<path d="M6.02 8.44 L7.12 4.44 L10.02 6.64"/><path d="M14.98 8.44 L13.88 4.44 L10.98 6.64"/><circle cx="10.5" cy="11" r="4.8"/><path d="M7.48 10.42 q1.0 1.2 2.0 0"/><path d="M11.52 10.42 q1.0 1.2 2.0 0"/><path d="M9.00 13.02 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.5 16.4 q0 4.2 4 6.2 q4 -2 4 -6.2"/><path d="M16 26 V16 a9 9 0 0 1 6 0 v10 a9 9 0 0 0 -6 0 Z"/><path d="M22 26 V16 a9 9 0 0 1 6 0 v10 a9 9 0 0 0 -6 0 Z"/>',
+      wave: '<path d="M7.96 8.87 L9.06 4.87 L11.96 7.07"/><path d="M17.04 8.87 L15.94 4.87 L13.04 7.07"/><circle cx="12.5" cy="11.5" r="4.9"/><circle cx="10.44" cy="10.91" r="0.73" fill="currentColor" stroke="none"/><circle cx="14.56" cy="10.91" r="0.73" fill="currentColor" stroke="none"/><path d="M11.00 13.56 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M8.2 16.8 q-1.8 5 0.2 8.6 q4.2 1.4 8.2 0 q2 -3.4 0.4 -7.6"/><path d="M17.6 17.4 q4.2 -1.2 4.4 -5.2"/><path d="M21 9.2 l0.6 -2.2"/><path d="M23.6 10.8 l2.2 -1.2"/>',
+      cup: '<path d="M6.02 9.94 L7.12 5.94 L10.02 8.14"/><path d="M14.98 9.94 L13.88 5.94 L10.98 8.14"/><circle cx="10.5" cy="12.5" r="4.8"/><path d="M7.48 11.92 q1.0 1.2 2.0 0"/><path d="M11.52 11.92 q1.0 1.2 2.0 0"/><path d="M9.00 14.52 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.5 18 q0 4.8 4 7 q4 -2.2 4 -7"/><path d="M17.5 17 h9.5 l-1.2 8.5 h-7.1 Z"/><path d="M27 19.2 q2.6 0.4 2.2 3 q-0.4 2.2 -2.8 1.8"/><path d="M20.5 14.4 q1.2 -1.5 0 -3"/><path d="M24 14.4 q1.2 -1.5 0 -3"/>',
+      stretch: '<path d="M11.6 12.4 L12 8.8 L15 11"/><path d="M20.4 12.4 L20 8.8 L17 11"/><circle cx="16" cy="13.6" r="4.6"/><circle cx="14.3" cy="13.2" r="0.9" fill="currentColor" stroke="none"/><circle cx="17.7" cy="13.2" r="0.9" fill="currentColor" stroke="none"/><path d="M14.9 15.8 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.5 18.5 h19 v8 h-19 Z"/><path d="M6.5 18.5 L3.5 15.5"/><path d="M25.5 18.5 L28.5 15.5"/>',
+      fish: '<path d="M5.27 9.23 L6.37 5.23 L9.27 7.43"/><path d="M13.73 9.23 L12.63 5.23 L9.73 7.43"/><circle cx="9.5" cy="11.5" r="4.4"/><path d="M6.65 10.97 q1.0 1.2 2.0 0"/><path d="M10.35 10.97 q1.0 1.2 2.0 0"/><path d="M8.00 13.35 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6 16.4 q0 4.2 3.5 6.2 q3.5 -2 3.5 -6.2"/><path d="M15.5 21 q4.5 -5 9.5 0 q-5 5 -9.5 0 Z"/><path d="M25 21 l3.5 -2.6 v5.2 Z"/><circle cx="18.4" cy="20.2" r="0.8" fill="currentColor" stroke="none"/>',
+      house: '<path d="M4.5 15.5 L16 6.5 L27.5 15.5"/><path d="M7 14 v11.5 h18 V14"/><path d="M12.6 20.4 L13.2 17.4 L15.4 19.2"/><path d="M19.4 20.4 L18.8 17.4 L16.6 19.2"/><circle cx="16" cy="21.4" r="3.4"/><circle cx="14.8" cy="21.2" r="0.75" fill="currentColor" stroke="none"/><circle cx="17.2" cy="21.2" r="0.75" fill="currentColor" stroke="none"/>',
+      car: '<path d="M5 21.5 h22 v-4 l-3.5 -5 h-15 L5 17.5 Z"/><circle cx="9.5" cy="24" r="2.4"/><circle cx="22.5" cy="24" r="2.4"/><path d="M11.6 12.5 L12.2 8.8 L15 11"/><path d="M20.4 12.5 L19.8 8.8 L17 11"/><circle cx="13.6" cy="17" r="0.85" fill="currentColor" stroke="none"/><circle cx="18.4" cy="17" r="0.85" fill="currentColor" stroke="none"/>',
+      gift: '<path d="M6 15.5 h20 v10.5 h-20 Z"/><path d="M4.5 12 h23 v3.5 h-23 Z"/><path d="M16 12 v14"/><path d="M16 12 q-4.5 -1.5 -4.5 -4 a2.2 2.2 0 0 1 4.5 0"/><path d="M16 12 q4.5 -1.5 4.5 -4 a2.2 2.2 0 0 0 -4.5 0"/>',
+      music: '<path d="M6.02 10.44 L7.12 6.44 L10.02 8.64"/><path d="M14.98 10.44 L13.88 6.44 L10.98 8.64"/><circle cx="10.5" cy="13" r="4.8"/><circle cx="8.48" cy="12.42" r="0.72" fill="currentColor" stroke="none"/><circle cx="12.52" cy="12.42" r="0.72" fill="currentColor" stroke="none"/><path d="M9.00 15.02 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M6.5 18.4 q0 4.8 4 6.8 q4 -2 4 -6.8"/><path d="M19 24 V10.5 l7.5 -2 V22"/><ellipse cx="17" cy="24" rx="2.4" ry="2"/><ellipse cx="24.5" cy="22" rx="2.4" ry="2"/>',
+      camera: '<path d="M4.5 12.5 h23 v13 h-23 Z"/><path d="M11 12.5 l2 -3 h6 l2 3"/><circle cx="16" cy="19" r="4.6"/><path d="M13.6 17.4 L14 15 L15.8 16.4"/><path d="M18.4 17.4 L18 15 L16.2 16.4"/><circle cx="14.9" cy="19.2" r="0.75" fill="currentColor" stroke="none"/><circle cx="17.1" cy="19.2" r="0.75" fill="currentColor" stroke="none"/>',
+      plant: '<path d="M9.5 18 h13 l-1.6 8.5 h-9.8 Z"/><path d="M16 18 v-6"/><path d="M16 14.5 q-5.5 0.5 -5.5 -4 q5 -0.5 5.5 4"/><path d="M16 15.5 q5.5 0.5 5.5 -4 q-5 -0.5 -5.5 4"/><path d="M13 21.4 q1 1.1 2 0"/><path d="M17 21.4 q1 1.1 2 0"/><path d="M15.2 23.4 q0.8 0.9 1.6 0"/>',
+      shirt: '<path d="M11.5 7.5 L6 11 l2.5 4 l3 -1.8 V26 h9 V13.2 l3 1.8 L26 11 l-5.5 -3.5 Z"/><path d="M11.5 7.5 q4.5 4 9 0"/><circle cx="14" cy="18" r="0.85" fill="currentColor" stroke="none"/><circle cx="18" cy="18" r="0.85" fill="currentColor" stroke="none"/><path d="M15 20.4 q1 1.1 2 0"/>',
+      phone: '<rect x="9" y="5" width="14" height="22" rx="2.6"/><path d="M12.6 13.4 L13.2 10 L15.4 12"/><path d="M19.4 13.4 L18.8 10 L16.6 12"/><circle cx="16" cy="15.4" r="3.8"/><circle cx="14.8" cy="15.2" r="0.75" fill="currentColor" stroke="none"/><circle cx="17.2" cy="15.2" r="0.75" fill="currentColor" stroke="none"/><path d="M13.6 23.4 h4.8"/>',
+      ticket: '<path d="M4.5 11.5 h23 v4 a2.6 2.6 0 0 0 0 5.2 v4 h-23 v-4 a2.6 2.6 0 0 0 0 -5.2 Z"/><path d="M11.6 15.6 L12.2 12.8 L14.2 14.6"/><path d="M17.6 15.6 L17 12.8 L15 14.6"/><circle cx="14.6" cy="17.6" r="3.4"/><circle cx="13.5" cy="17.4" r="0.7" fill="currentColor" stroke="none"/><circle cx="15.7" cy="17.4" r="0.7" fill="currentColor" stroke="none"/><path d="M21.5 15 v6"/>',
+      bath: '<path d="M4.5 18 h23 v1.6 a6 6 0 0 1 -6 6 h-11 a6 6 0 0 1 -6 -6 Z"/><path d="M7.5 18 V10 a2.4 2.4 0 0 1 4.8 0"/><path d="M13.6 15.4 L14.2 12.4 L16 14.2"/><path d="M18.4 15.4 L17.8 12.4 L16 14.2"/><circle cx="16" cy="17" r="3.4"/><circle cx="14.9" cy="16.8" r="0.75" fill="currentColor" stroke="none"/><circle cx="17.1" cy="16.8" r="0.75" fill="currentColor" stroke="none"/><path d="M22 22 q1.6 1.6 3.2 0"/>',
+      plane: '<path d="M13.6 8.8 v5.2 l-9.6 5.6 v3 l9.6 -2.6 v4.4 l-3 2.2 v1.8 l5.4 -1.4 l5.4 1.4 v-1.8 l-3 -2.2 v-4.4 l9.6 2.6 v-3 l-9.6 -5.6 V8.8"/><path d="M12.9 9 L12.4 5.2 L15.2 7.2"/><path d="M19.1 9 L19.6 5.2 L16.8 7.2"/><path d="M13.6 8.8 a2.4 2.4 0 0 1 4.8 0"/><circle cx="14.9" cy="9.6" r="0.75" fill="currentColor" stroke="none"/><circle cx="17.1" cy="9.6" r="0.75" fill="currentColor" stroke="none"/>',
+      bulb: '<path d="M16 5.5 a7 7 0 0 1 4.4 12.4 q-1.2 1 -1.2 2.6 h-6.4 q0 -1.6 -1.2 -2.6 A7 7 0 0 1 16 5.5 Z"/><path d="M12.8 22.4 h6.4"/><path d="M13.6 25 h4.8"/><path d="M13.6 11.6 L14.2 9 L16 10.6"/><path d="M18.4 11.6 L17.8 9 L16 10.6"/><circle cx="14.6" cy="13.4" r="0.8" fill="currentColor" stroke="none"/><circle cx="17.4" cy="13.4" r="0.8" fill="currentColor" stroke="none"/>',
+      clock: '<circle cx="16" cy="17.5" r="9"/><path d="M16 12 v5.5 l3.6 2.4"/><path d="M8.6 10.4 L8 6.4 L11.6 8"/><path d="M23.4 10.4 L24 6.4 L20.4 8"/>',
+      star: '<path d="M6.52 10.44 L7.62 6.44 L10.52 8.64"/><path d="M15.48 10.44 L14.38 6.44 L11.48 8.64"/><circle cx="11" cy="13" r="4.8"/><circle cx="8.98" cy="12.42" r="0.72" fill="currentColor" stroke="none"/><circle cx="13.02" cy="12.42" r="0.72" fill="currentColor" stroke="none"/><path d="M9.50 15.02 q0.75 0.9 1.5 0 q0.75 0.9 1.5 0"/><path d="M7 18.4 q0 4.8 4 6.8 q4 -2 4 -6.8"/><path d="M22.5 12 l1.9 3.9 l4.3 0.6 l-3.1 3 l0.7 4.3 l-3.8 -2 l-3.8 2 l0.7 -4.3 l-3.1 -3 l4.3 -0.6 Z"/>',
+      paw: '<path d="M16 26 a5.5 5 0 0 1 -5.5 -5 q0 -3.4 5.5 -6.4 q5.5 3 5.5 6.4 a5.5 5 0 0 1 -5.5 5 Z"/><ellipse cx="8" cy="15" rx="2.6" ry="3.2"/><ellipse cx="13.2" cy="10.4" rx="2.4" ry="3.1"/><ellipse cx="18.8" cy="10.4" rx="2.4" ry="3.1"/><ellipse cx="24" cy="15" rx="2.6" ry="3.2"/>',
+      cake: '<path d="M6 19 h20 v7.5 h-20 Z"/><path d="M6 22.5 q2.5 -2 5 0 t5 0 t5 0 t5 0"/><path d="M9.5 19 v-3.5"/><path d="M16 19 v-3.5"/><path d="M22.5 19 v-3.5"/><path d="M9.5 15.5 q-1.4 -1.6 0 -3 q1.4 1.4 0 3"/><path d="M22.5 15.5 q-1.4 -1.6 0 -3 q1.4 1.4 0 3"/><path d="M14.2 15.4 L14.6 12.8 L16 14.2"/><path d="M17.8 15.4 L17.4 12.8 L16 14.2"/><circle cx="16" cy="16.4" r="2.6"/><circle cx="15.1" cy="16.2" r="0.65" fill="currentColor" stroke="none"/><circle cx="16.9" cy="16.2" r="0.65" fill="currentColor" stroke="none"/>',
+      wallet: '<path d="M4.5 11 h20 a3 3 0 0 1 3 3 v10 a3 3 0 0 1 -3 3 h-20 Z"/><path d="M4.5 11 v16"/><path d="M27.5 17 h-5 a2 2 0 0 0 0 4 h5"/><path d="M9.6 11 L10.2 6.4 L13.4 9"/><path d="M18.4 11 L17.8 6.4 L14.6 9"/><circle cx="12.6" cy="17.6" r="0.9" fill="currentColor" stroke="none"/><circle cx="16.4" cy="17.6" r="0.9" fill="currentColor" stroke="none"/>',
+      card: '<rect x="3.5" y="9" width="25" height="16" rx="2.6"/><path d="M3.5 14 h25"/><circle cx="10" cy="19.5" r="2.6"/><path d="M8.4 18 L8.8 15.8 L10.4 17.2"/><path d="M11.6 18 L11.2 15.8 L9.6 17.2"/><path d="M17.5 19 h8"/><path d="M17.5 22 h5"/>',
+      bank: '<path d="M3.5 12.5 L16 6 L28.5 12.5"/><path d="M6.5 12.5 v10"/><path d="M12 12.5 v10"/><path d="M20 12.5 v10"/><path d="M25.5 12.5 v10"/><path d="M3.5 25.5 h25"/><path d="M14.6 12.4 L15 9.8 L16 11"/><path d="M17.4 12.4 L17 9.8 L16 11"/><circle cx="16" cy="16.5" r="3.4"/><circle cx="14.9" cy="16.2" r="0.7" fill="currentColor" stroke="none"/><circle cx="17.1" cy="16.2" r="0.7" fill="currentColor" stroke="none"/>',
+      piggy: '<path d="M5 18.5 q0 -6.5 8.5 -6.5 h4 q8.5 0 8.5 6.5 q0 4 -4 5.8 v2.2 h-3 v-1.4 h-7 v1.4 h-3 v-2.4 q-4 -1.8 -4 -5.6 Z"/><path d="M12.5 12 L13 8 L16.4 10.6"/><path d="M12.5 15.5 h5"/><circle cx="20.5" cy="17.5" r="0.95" fill="currentColor" stroke="none"/><path d="M5 17 q-2.6 0.6 -2.6 3.2"/>',
+      calendar: '<rect x="4" y="8" width="24" height="19" rx="2.6"/><path d="M4 14 h24"/><path d="M10 8 V5"/><path d="M22 8 V5"/><path d="M13.4 19.8 L13.8 17.4 L15.4 18.8"/><path d="M18.6 19.8 L18.2 17.4 L16.6 18.8"/><circle cx="16" cy="21.6" r="3"/><circle cx="15" cy="21.4" r="0.65" fill="currentColor" stroke="none"/><circle cx="17" cy="21.4" r="0.65" fill="currentColor" stroke="none"/>',
+      cart: '<path d="M3 7 h3.5 l3.5 13 h12 l3 -9 h-16"/><circle cx="12" cy="24.5" r="2.2"/><circle cx="21" cy="24.5" r="2.2"/><path d="M15.2 14.4 L15.6 12 L17.2 13.4"/><path d="M20 14.4 L19.6 12 L18 13.4"/><circle cx="17.6" cy="16.2" r="2.6"/>',
+      bottle: '<path d="M13 5.5 h6 v4 l2.5 3.5 v13 a1.6 1.6 0 0 1 -1.6 1.5 h-7.8 a1.6 1.6 0 0 1 -1.6 -1.5 v-13 L13 9.5 Z"/><path d="M10.5 17 h11"/><circle cx="14.2" cy="21" r="0.85" fill="currentColor" stroke="none"/><circle cx="17.8" cy="21" r="0.85" fill="currentColor" stroke="none"/><path d="M15 23.4 q1 1.1 2 0"/>',
+      icecream: '<path d="M10 15.5 a6 6 0 0 1 12 0 Z"/><path d="M10.5 16 L16 27 L21.5 16"/><path d="M12.4 19.6 h7.2"/><path d="M13.4 12.6 L13.8 10 L15.4 11.4"/><path d="M18.6 12.6 L18.2 10 L16.6 11.4"/><circle cx="14.6" cy="14" r="0.75" fill="currentColor" stroke="none"/><circle cx="17.4" cy="14" r="0.75" fill="currentColor" stroke="none"/>',
+      dumbbell: '<path d="M11 13 h10 v6 h-10 Z"/><path d="M7.5 11 h3.5 v10 h-3.5 Z"/><path d="M21 11 h3.5 v10 h-3.5 Z"/><path d="M4 14 h3.5"/><path d="M24.5 14 h3.5"/><circle cx="14" cy="16" r="0.85" fill="currentColor" stroke="none"/><circle cx="18" cy="16" r="0.85" fill="currentColor" stroke="none"/><path d="M9 24.5 q3.5 2.6 7 0 q3.5 2.6 7 0"/>',
+      bicycle: '<circle cx="7.5" cy="21" r="5"/><circle cx="24.5" cy="21" r="5"/><path d="M7.5 21 L13 12.5 h6 L24.5 21"/><path d="M13 12.5 h-2.5"/><path d="M16 21 h-8.5"/><path d="M19 12.5 l1.5 -3.5"/><path d="M18.6 9 h3.5"/>',
+      train: '<rect x="7" y="7" width="18" height="15" rx="3"/><path d="M7 14 h18"/><path d="M10.6 13.4 L11 10.6 L13 12.2"/><path d="M21.4 13.4 L21 10.6 L19 12.2"/><circle cx="11.5" cy="18" r="1.4"/><circle cx="20.5" cy="18" r="1.4"/><path d="M9 22 l-2.5 4"/><path d="M23 22 l2.5 4"/><path d="M11 25 h10"/>',
+      scissors: '<circle cx="8.5" cy="23" r="3.4"/><circle cx="23.5" cy="23" r="3.4"/><path d="M10.8 20.6 L24 5.5"/><path d="M21.2 20.6 L8 5.5"/><circle cx="16" cy="14" r="1.1"/>',
+      umbrella: '<path d="M3.5 16.5 a12.5 10 0 0 1 25 0 Z"/><path d="M16 16.5 v8 a2.6 2.6 0 0 0 5.2 0"/><path d="M14.4 9 L14.8 6.4 L16 7.6"/><path d="M17.6 9 L17.2 6.4 L16 7.6"/><circle cx="14.9" cy="12.4" r="0.75" fill="currentColor" stroke="none"/><circle cx="17.1" cy="12.4" r="0.75" fill="currentColor" stroke="none"/>',
+      tv: '<rect x="3.5" y="10.5" width="25" height="15" rx="2.6"/><path d="M11 10.5 L7.5 5.5"/><path d="M21 10.5 L24.5 5.5"/><path d="M13.4 17.4 L13.8 15 L15.4 16.4"/><path d="M18.6 17.4 L18.2 15 L16.6 16.4"/><circle cx="16" cy="19.4" r="3.2"/><circle cx="14.9" cy="19.2" r="0.7" fill="currentColor" stroke="none"/><circle cx="17.1" cy="19.2" r="0.7" fill="currentColor" stroke="none"/>',
+      key: '<circle cx="10" cy="12" r="5.5"/><circle cx="10" cy="12" r="1.8"/><path d="M13.6 16.2 L24 26.5"/><path d="M20 22.6 l3 -3"/><path d="M22.4 25 l2.6 -2.6"/>',
+      wifi: '<path d="M4 13.5 a17 17 0 0 1 24 0"/><path d="M8.5 18 a11 11 0 0 1 15 0"/><path d="M12.8 22.4 L13.2 20 L14.8 21.4"/><path d="M19.2 22.4 L18.8 20 L17.2 21.4"/><circle cx="16" cy="24.2" r="3"/><circle cx="15" cy="24" r="0.65" fill="currentColor" stroke="none"/><circle cx="17" cy="24" r="0.65" fill="currentColor" stroke="none"/>',
+      droplet: '<path d="M16 5 q7.5 8.5 7.5 13.5 a7.5 7.5 0 0 1 -15 0 Q8.5 13.5 16 5 Z"/><path d="M13.4 17.6 L13.8 15.2 L15.4 16.6"/><path d="M18.6 17.6 L18.2 15.2 L16.6 16.6"/><circle cx="14.9" cy="19.4" r="0.75" fill="currentColor" stroke="none"/><circle cx="17.1" cy="19.4" r="0.75" fill="currentColor" stroke="none"/><path d="M15.1 21.6 q0.9 1 1.8 0"/>',
+      globe: '<circle cx="16" cy="17" r="9.5"/><path d="M16 7.5 q-5 9.5 0 19"/><path d="M16 7.5 q5 9.5 0 19"/><path d="M6.8 14 h18.4"/><path d="M6.8 20 h18.4"/><path d="M10.6 8.8 L11 5.6 L13.6 7.6"/><path d="M21.4 8.8 L21 5.6 L18.4 7.6"/>',
+      pen: '<path d="M6 26 l1.6 -5.4 L21 7.2 a2.6 2.6 0 0 1 3.8 3.8 L11.4 24.4 Z"/><path d="M19.2 9 l3.8 3.8"/><path d="M7.6 20.6 l3.8 3.8"/><path d="M24 5.6 L24.6 3 L26.4 4.6"/><path d="M27.6 8.2 L29.6 6.6 L28.8 9"/>',
+      tools: '<path d="M20.5 4.5 a5.5 5.5 0 0 0 -5 8.6 L5.5 23 a2.4 2.4 0 0 0 3.4 3.4 L19 16.4 a5.5 5.5 0 0 0 6.4 -8.2 l-3.4 3.4 l-3.2 -3.2 Z"/><circle cx="7.4" cy="24.6" r="0.9" fill="currentColor" stroke="none"/><path d="M11.6 8.4 L12 5.4 L14.4 7.4"/><path d="M8.4 10.6 L6 8.8 L8.8 8"/>',
+      baby: '<circle cx="16" cy="13" r="6"/><path d="M11.4 9 L11.8 5.6 L14.6 7.6"/><path d="M20.6 9 L20.2 5.6 L17.4 7.6"/><circle cx="14" cy="12.6" r="0.9" fill="currentColor" stroke="none"/><circle cx="18" cy="12.6" r="0.9" fill="currentColor" stroke="none"/><path d="M14.8 15.4 q1.2 1.3 2.4 0"/><path d="M10.5 21 q5.5 -3 11 0 v5.5 h-11 Z"/><path d="M10.5 23.5 h-2.6"/><path d="M21.5 23.5 h2.6"/>'
+    };
+
+    // ---- 匯入其他記帳 App 的 CSV ----
+    function parseCSV(text) {
+      const t = String(text).replace(/^\uFEFF/, '');
+      const rows = [];
+      let row = [], field = '', inQ = false;
+      for (let i = 0; i < t.length; i++) {
+        const ch = t[i];
+        if (inQ) {
+          if (ch === '"') {
+            if (t[i + 1] === '"') { field += '"'; i++; }
+            else inQ = false;
+          } else field += ch;
+        } else if (ch === '"') inQ = true;
+        else if (ch === ',') { row.push(field); field = ''; }
+        else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else if (ch === '\r') { /* skip */ }
+        else field += ch;
+      }
+      if (field.length || row.length) { row.push(field); rows.push(row); }
+      return rows.filter(r => r.some(c => String(c).trim() !== ''));
+    }
+
+    const CSV_HINTS = {
+      date:     ['日期', 'date', '時間', 'time', '交易日期', '記帳日期'],
+      amount:   ['金額', 'amount', '價格', 'price', 'value', '費用'],
+      type:     ['類型', 'type', '收支', '種類', '方向'],
+      category: ['分類', 'category', '類別', '項目', '科目'],
+      account:  ['帳戶', 'account', '帳號', '錢包', 'wallet', '資產'],
+      note:     ['備註', 'note', 'memo', 'description', '說明', '摘要', '內容'],
+      income:   ['收入', 'income', 'in'],
+      expense:  ['支出', 'expense', 'out']
+    };
+
+    // 判斷一整欄的值是不是收入/支出這種類型字樣
+    function looksLikeTypeColumn(values) {
+      const vals = values.map(v => String(v || '').trim().toLowerCase()).filter(Boolean);
+      if (vals.length < 1) return false;
+      const hit = vals.filter(v =>
+        CSV_HINTS.income.some(k => v === k.toLowerCase()) ||
+        CSV_HINTS.expense.some(k => v === k.toLowerCase())
+      ).length;
+      return hit / vals.length >= 0.8;
+    }
+
+    function guessColumns(header, rows) {
+      const norm = header.map(h => String(h).trim().toLowerCase());
+      const map = {};
+      ['date', 'amount', 'type', 'category', 'account', 'note'].forEach(f => {
+        let idx = norm.findIndex(h => CSV_HINTS[f].some(k => h === k.toLowerCase()));
+        if (idx < 0) idx = norm.findIndex(h => CSV_HINTS[f].some(k => h.includes(k.toLowerCase())));
+        map[f] = idx;
+      });
+
+      // 標題看不出類型欄時，改看內容：某一欄若幾乎都是「收入/支出」就是它
+      const sample = (rows || []).slice(0, 30);
+      if (map.type < 0 && sample.length) {
+        for (let c = 0; c < header.length; c++) {
+          if (c === map.date || c === map.amount) continue;
+          if (looksLikeTypeColumn(sample.map(r => r[c]))) { map.type = c; break; }
+        }
+      }
+      // 若「分類」欄其實裝的是收入/支出，那它是類型欄不是分類欄，
+      // 再從剩下的欄位挑一個真正的分類（子分類比主分類具體，優先用）
+      if (map.category >= 0 && sample.length &&
+          looksLikeTypeColumn(sample.map(r => r[map.category]))) {
+        const used = map.category;
+        if (map.type < 0) map.type = used;
+        const taken = [used, map.date, map.amount, map.note];
+        const prefer = ['子分類', '細分類', '小分類', '主分類', '大分類', '類別', '項目', '科目', 'category'];
+        let alt = -1;
+        for (const k of prefer) {
+          const i = norm.findIndex((h, idx) => !taken.includes(idx) && h.includes(k.toLowerCase()));
+          if (i >= 0) { alt = i; break; }
+        }
+        map.category = alt;
+      }
+      return map;
+    }
+
+    function normDate(raw) {
+      const s = String(raw || '').trim();
+      if (!s) return null;
+      let m = s.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})/);
+      if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+      m = s.match(/^(\d{2,3})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+      if (m && Number(m[1]) < 200) {
+        return `${Number(m[1]) + 1911}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+      }
+      m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+      if (m) return `${m[3]}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`;
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      return null;
+    }
+
+    function normAmount(raw) {
+      let s = String(raw || '').trim();
+      if (!s) return null;
+      let neg = false;
+      if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+      s = s.replace(/[^\d.\-]/g, '');
+      if (s === '' || s === '-' || s === '.') return null;
+      let v = parseFloat(s);
+      if (isNaN(v)) return null;
+      return neg ? -v : v;
+    }
+
+    function normType(rawType, amountValue) {
+      const s = String(rawType || '').trim().toLowerCase();
+      if (s) {
+        if (CSV_HINTS.income.some(k => s === k || s.includes(k))) return 'income';
+        if (CSV_HINTS.expense.some(k => s === k || s.includes(k))) return 'expense';
+      }
+      return amountValue < 0 ? 'expense' : 'income';
+    }
+
+    // 依分類名稱挑一個合適的圖示（匯入或新增時用）
+    const ICON_KEYWORDS = [
+      ['fish',   ['生鮮', '魚', '海鮮', '肉', '菜', '食材', '市場']],
+      ['cart',   ['超市', '賣場', '量販', '好市多', 'costco']],
+      ['bowl',   ['餐', '食', '飯', '吃', '早餐', '午餐', '晚餐', '宵夜', '外食', '料理', '便當', '小吃', 'food', 'meal']],
+      ['icecream', ['冰', '霜淇淋', '雪糕', '冰淇淋']],
+      ['cake',   ['甜點', '點心', '蛋糕', '零食', '下午茶', '麵包']],
+      ['bottle', ['酒', '啤酒', '紅酒', '瓶']],
+      ['cup',    ['飲', '咖啡', '茶', '手搖', '飲料', 'drink', 'coffee']],
+      ['bicycle',['腳踏車', '單車', '自行車', 'ubike', 'bike']],
+      ['train',  ['捷運', '火車', '高鐵', '客運', '台鐵', 'mrt', 'train']],
+      ['car',    ['車', '油', '加油', '停車', '汽車', '機車', '計程', 'uber', 'car']],
+      ['run',    ['交通', '公車', '通勤', '車票', 'transport']],
+      ['plane',  ['機票', '飛機', '出國', '航空', 'flight']],
+      ['globe',  ['國外', '海外', '匯兌', '外幣']],
+      ['sit',    ['旅', '住宿', '飯店', '民宿', 'travel', 'hotel']],
+      ['camera', ['攝影', '相機', '照片', '拍照', 'camera', 'photo']],
+      ['bag',    ['購物', '網購', '日用', '用品', '雜貨', 'shopping']],
+      ['shirt',  ['衣', '服飾', '鞋', '包包', '配件', '穿搭', 'clothes']],
+      ['ticket', ['電影', '票', '展覽', '演唱會', '門票', 'ticket', 'movie']],
+      ['tv',     ['追劇', '影音', '電視', 'netflix', 'youtube', 'tv']],
+      ['music',  ['音樂', '唱歌', 'ktv', '樂器', 'music', 'spotify']],
+      ['dumbbell', ['健身', '重訓', '運動', '球', 'gym', 'fitness']],
+      ['ball',   ['娛樂', '遊戲', '玩', '休閒', 'game', 'fun']],
+      ['coin',   ['薪', '收入', '獎金', '紅包', '零用', '報酬', '兼職', '退款', 'salary', 'income']],
+      ['piggy',  ['儲蓄', '存錢', '撲滿', '零存']],
+      ['bank',   ['銀行', '轉帳', '匯款', '手續費', 'bank']],
+      ['card',   ['信用卡', '刷卡', '卡費', 'card']],
+      ['wallet', ['錢包', '現金', '零錢']],
+      ['chart',  ['投資', '股', '基金', '利息', '股利', '理財', '存款', '定存', 'invest']],
+      ['health', ['醫', '藥', '健康', '看診', '保健', '牙', '健保', 'health', 'medical']],
+      ['umbrella', ['保險', '雨', '意外', 'insurance']],
+      ['book',   ['書', '學', '課', '教育', '進修', '文具', '補習', 'book', 'study']],
+      ['pen',    ['筆', '文具', '紙', '印刷']],
+      ['laptop', ['訂閱', '軟體', '數位', '3c', '電子', '電腦', 'digital', 'subscription']],
+      ['phone',  ['手機', '電信', '通訊', 'phone']],
+      ['wifi',   ['網路', '寬頻', 'wifi', '網費']],
+      ['clock',  ['定期', '每月', '固定', '月費', '年費']],
+      ['calendar', ['日期', '行事曆', '預約', '會員']],
+      ['droplet',['水費', '自來水']],
+      ['bulb',   ['電費', '水電', '瓦斯', '能源', '帳單', '燃料']],
+      ['house',  ['房租', '房貸', '住', '家', '管理費', '裝潢', '家具', 'rent', 'home']],
+      ['tools',  ['修繕', '維修', '工具', '水電行']],
+      ['key',    ['租', '押金', '鑰匙', '仲介']],
+      ['plant',  ['植物', '園藝', '花', '盆栽']],
+      ['scissors', ['美髮', '剪髮', '理髮', '髮廊']],
+      ['bath',   ['美容', '保養', '化妝', '沐浴', '清潔', 'spa', 'beauty']],
+      ['gift',   ['禮物', '生日', '節日', '紀念', '送禮', 'gift']],
+      ['heart',  ['人情', '捐', '紅白', '孝親', '社交', '聚會', '約會', '禮金', '禮']],
+      ['baby',   ['小孩', '育兒', '寶寶', '尿布', '奶粉', '孩子']],
+      ['stretch',['貓', '寵物', '毛小孩', '狗', 'pet', 'cat', 'dog']],
+      ['paw',    ['其他', '雜項', '未分類', 'other', 'misc']]
     ];
+
+    function guessCatIcon(name) {
+      const n = String(name || '').toLowerCase();
+      if (!n) return 'cat:wave';
+      for (const [icon, keys] of ICON_KEYWORDS) {
+        if (keys.some(k => n.includes(k))) return 'cat:' + icon;
+      }
+      return 'cat:wave';
+    }
+
+    // 分類圖示：值若是 'cat:xxx' 就畫線條貓，否則當成 emoji 直接顯示
+    const CatIcon = ({ icon, size = '1.5em' }) => {
+      const key = typeof icon === 'string' && icon.startsWith('cat:') ? icon.slice(4) : null;
+      const path = key && CAT_ICONS[key];
+      if (!path) {
+        return <span style={{ fontSize: size, lineHeight: 1 }}>{icon || '🐾'}</span>;
+      }
+      return (
+        <svg
+          viewBox="0 0 32 32"
+          width={size}
+          height={size}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.45"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ display: 'block' }}
+          dangerouslySetInnerHTML={{ __html: path }}
+        />
+      );
+    };
+
+    const INITIAL_CATEGORIES = [
+      { id: 'cat1', name: '餐飲', icon: 'cat:bowl', type: 'expense', accountId: 'acc1', budget: 0 },
+      { id: 'cat2', name: '交通', icon: 'cat:run', type: 'expense', accountId: 'acc1', budget: 0 },
+      { id: 'cat3', name: '購物', icon: 'cat:bag', type: 'expense', accountId: 'acc1', budget: 0 },
+      { id: 'cat4', name: '娛樂', icon: 'cat:ball', type: 'expense', accountId: 'acc1', budget: 0 },
+      { id: 'cat5', name: '薪資', icon: 'cat:coin', type: 'income', accountId: 'acc1', budget: 0 },
+      { id: 'cat6', name: '投資', icon: 'cat:chart', type: 'income', accountId: 'acc2', budget: 0 },
+    ];
+
+    // 舊資料升級：以前的分類是全域共用的，現在每個帳戶各自擁有一份。
+    // 依照「哪些帳戶實際用過這個分類」把它拆開，並把交易改指到新的分類 id。
+    // 用固定規則產生 id，重複執行結果一樣，不會愈跑愈多。
+    function migrateCategories(categories, transactions, recurringRules, accounts) {
+      const cats = Array.isArray(categories) ? categories : [];
+      const txs = Array.isArray(transactions) ? transactions : [];
+      const recs = Array.isArray(recurringRules) ? recurringRules : [];
+      const accs = Array.isArray(accounts) && accounts.length ? accounts : [];
+      const legacy = cats.filter(c => !c.accountId);
+      if (!legacy.length) return { categories: cats, transactions: txs, recurringRules: recs, changed: false };
+
+      const fallbackAcc = accs[0]?.id || 'acc1';
+      const validAcc = new Set(accs.map(a => a.id));
+      const out = cats.filter(c => c.accountId);
+      const remap = {};   // `${oldCatId}|${accountId}` -> newCatId
+
+      legacy.forEach(cat => {
+        const usedBy = new Set();
+        txs.forEach(t => { if (t.categoryId === cat.id && validAcc.has(t.accountId)) usedBy.add(t.accountId); });
+        recs.forEach(r => { if (r.categoryId === cat.id && validAcc.has(r.accountId)) usedBy.add(r.accountId); });
+        if (!usedBy.size) usedBy.add(fallbackAcc);
+        usedBy.forEach(accId => {
+          const newId = `${cat.id}__${accId}`;
+          remap[`${cat.id}|${accId}`] = newId;
+          if (!out.some(c => c.id === newId)) {
+            out.push({ ...cat, id: newId, accountId: accId, budget: Number(cat.budget) || 0 });
+          }
+        });
+      });
+
+      const fix = (item) => {
+        const key = `${item.categoryId}|${item.accountId}`;
+        if (remap[key]) return { ...item, categoryId: remap[key] };
+        // 該分類沒被這個帳戶用過（理論上不會發生），退回同名同型的分類
+        const old = cats.find(c => c.id === item.categoryId);
+        if (!old) return item;
+        const alt = out.find(c => c.accountId === item.accountId && c.name === old.name && c.type === old.type);
+        return alt ? { ...item, categoryId: alt.id } : item;
+      };
+
+      return {
+        categories: out,
+        transactions: txs.map(t => (remap[`${t.categoryId}|${t.accountId}`] || cats.some(c => c.id === t.categoryId && !c.accountId) ? fix(t) : t)),
+        recurringRules: recs.map(r => (remap[`${r.categoryId}|${r.accountId}`] || cats.some(c => c.id === r.categoryId && !c.accountId) ? fix(r) : r)),
+        changed: true
+      };
+    }
 
     function useLocalStorage(key, initialValue) {
       const [storedValue, setStoredValue] = useState(() => {
@@ -329,6 +640,7 @@
       const [activeTab, setActiveTab] = useLocalStorage('meow_activeTab', 'home');
       const [accounts, setAccounts] = useLocalStorage('meow_accounts', INITIAL_ACCOUNTS);
       const [categories, setCategories] = useLocalStorage('meow_categories', INITIAL_CATEGORIES);
+      const [catsMigrated, setCatsMigrated] = useLocalStorage('meow_catsMigrated', false);
       const [transactions, setTransactions] = useLocalStorage('meow_transactions', []);
       const [selectedAccountId, setSelectedAccountId] = useLocalStorage('meow_selectedAccountId', 'all');
 
@@ -345,18 +657,169 @@
       // 趨勢圖顯示方式：直條圖 or 折線圖
       const [trendChart, setTrendChart] = useLocalStorage('meow_trendChart', 'bar');
 
+      // 某個帳戶底下的分類
+      const catsOf = (accId, type) =>
+        categories.filter(c => c.accountId === accId && (!type || c.type === type));
+
       // 是否啟用「銀行 / 金融機構」標記功能
       const [useBank, setUseBank] = useLocalStorage('meow_useBank', true);
+
+      // 是否啟用「預算規劃」功能
+      const [useBudget, setUseBudget] = useLocalStorage('meow_useBudget', true);
 
       // 正在編輯的那一筆紀錄（null 表示沒有）
       const [editingTx, setEditingTx] = useState(null);
       const [showAllTx, setShowAllTx] = useState(false);
+
+      // 搜尋紀錄
+      const [query, setQuery] = useState('');
+      const [queryType, setQueryType] = useState('all');   // all / expense / income
+      const searching = query.trim() !== '' || queryType !== 'all';
 
       // 匯入備份用
       const fileInputRef = useRef(null);
       const [importError, setImportError] = useState('');
       const [pendingImport, setPendingImport] = useState(null);   // { data, summary }
       const [importDone, setImportDone] = useState(null);         // 匯入完成的結果訊息
+      const [pendingClear, setPendingClear] = useState(null);   // { kind:'all'|'imported'|'batch', batchId, count }
+
+      // 匯入批次紀錄，之後可以整批刪掉
+      const [importBatches, setImportBatches] = useLocalStorage('meow_importBatches', []);
+
+      // CSV 匯入
+      const csvInputRef = useRef(null);
+      const [csvDraft, setCsvDraft] = useState(null);   // { header, rows, map }
+
+      const handlePickCSV = (e) => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        setImportError('');
+        const reader = new FileReader();
+        reader.onload = () => {
+          const rows = parseCSV(String(reader.result || ''));
+          if (rows.length < 2) {
+            setImportError('這個 CSV 看起來是空的，或只有標題列。');
+            return;
+          }
+          const header = rows[0];
+          const body = rows.slice(1);
+          const gmap = guessColumns(header, body);
+          const baseName = String(file.name || '').replace(/\.[^.]+$/, '').slice(0, 20) || '匯入資產';
+          setCsvDraft({
+            header,
+            rows: body,
+            map: gmap,
+            fallbackType: 'expense',
+            // 目的地：column = 照 CSV 的帳戶欄；existing = 全部匯到某個現有資產；new = 開一個新資產
+            destMode: gmap.account >= 0 ? 'column' : 'existing',
+            destAccountId: accounts[0]?.id || 'acc1',
+            newAccName: baseName
+          });
+        };
+        reader.onerror = () => setImportError('讀取檔案失敗，請再試一次喵。');
+        reader.readAsText(file, 'utf-8');
+      };
+
+      // 依欄位對應把 CSV 轉成交易，順便建立缺少的分類/帳戶
+      const buildFromCSV = (draft, batchId) => {
+        const { rows, map } = draft;
+        const newCats = [];
+        const newAccs = [];
+        const txs = [];
+        let skipped = 0;
+
+        const findCat = (name, type, accId) => {
+          const n = String(name || '').trim() || (type === 'income' ? '其他收入' : '其他支出');
+          const hit = [...categories, ...newCats].find(
+            c => c.name === n && c.type === type && c.accountId === accId);
+          if (hit) return hit.id;
+          const id = `cat_${Date.now()}_${newCats.length}`;
+          newCats.push({ id, name: n, icon: guessCatIcon(n), type, accountId: accId, budget: 0 });
+          return id;
+        };
+
+        const mode = draft.destMode || 'column';
+        // 匯到新資產時，先準備好那個資產（id 依批次固定，預覽和實際匯入才會一致）
+        const newAccId = `acc_imp_${batchId || 'preview'}`;
+        if (mode === 'new') {
+          newAccs.push({
+            id: newAccId,
+            name: String(draft.newAccName || '').trim() || '匯入資產',
+            balance: 0, type: 'custom', banks: []
+          });
+        }
+
+        const findAcc = (name) => {
+          if (mode === 'new') return newAccId;
+          if (mode === 'existing') return draft.destAccountId || accounts[0]?.id;
+          const n = String(name || '').trim();
+          if (!n) return draft.destAccountId || accounts[0]?.id;
+          const hit = [...accounts, ...newAccs].find(a => a.name === n);
+          if (hit) return hit.id;
+          const id = `acc_${Date.now()}_${newAccs.length}`;
+          newAccs.push({ id, name: n, balance: 0, type: 'custom', banks: [] });
+          return id;
+        };
+
+        rows.forEach((r, i) => {
+          const rawAmt = map.amount >= 0 ? r[map.amount] : '';
+          const amt = normAmount(rawAmt);
+          const date = map.date >= 0 ? normDate(r[map.date]) : null;
+          if (amt === null || amt === 0 || !date) { skipped++; return; }
+          const type = map.type >= 0
+            ? normType(r[map.type], amt)
+            : (draft.fallbackType === 'sign' ? (amt < 0 ? 'expense' : 'income') : draft.fallbackType);
+          const accId = findAcc(map.account >= 0 ? r[map.account] : '');
+          txs.push({
+            id: `tx_csv_${Date.now()}_${i}`,
+            source: 'csv',
+            batchId: batchId || null,
+            type,
+            amount: Math.abs(amt),
+            categoryId: findCat(map.category >= 0 ? r[map.category] : '', type, accId),
+            accountId: accId,
+            date,
+            note: map.note >= 0 ? String(r[map.note] || '').trim() : '',
+            bankId: '', bankName: '', isRecurring: false
+          });
+        });
+
+        return { txs, newCats, newAccs, skipped };
+      };
+
+      const commitCSV = (draft) => {
+        const batchId = `imp_${Date.now()}`;
+        const { txs, newCats, newAccs, skipped } = buildFromCSV(draft, batchId);
+        if (!txs.length) {
+          setCsvDraft(null);
+          setImportError('沒有讀到任何可用的紀錄，請確認「日期」和「金額」欄位有選對。');
+          return;
+        }
+        if (newCats.length) setCategories(prev => [...prev, ...newCats]);
+        if (newAccs.length) setAccounts(prev => [...prev, ...newAccs]);
+
+        setTransactions(prev => [...prev, ...txs].sort((a, b) => new Date(b.date) - new Date(a.date)));
+        setAccounts(prev => prev.map(acc => {
+          const delta = txs
+            .filter(t => t.accountId === acc.id)
+            .reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0);
+          return delta ? { ...acc, balance: acc.balance + delta } : acc;
+        }));
+
+        setImportBatches(prev => [
+          ...prev,
+          { id: batchId, at: new Date().toISOString(), count: txs.length }
+        ]);
+
+        setCsvDraft(null);
+        setImportDone(
+          `匯入了 ${txs.length} 筆紀錄` +
+          (newCats.length ? `，新增 ${newCats.length} 個分類` : '') +
+          (newAccs.length ? `，新增 ${newAccs.length} 個帳戶` : '') +
+          (skipped ? `。有 ${skipped} 筆因為日期或金額看不懂被略過。` : '。')
+        );
+      };
 
       const handlePickBackup = (e) => {
         const file = e.target.files && e.target.files[0];
@@ -388,6 +851,21 @@
 
       // ---- 固定收支（每月自動記帳）----
       const [recurringRules, setRecurringRules] = useLocalStorage('meow_recurring', []);
+
+      // 舊資料升級：把全域分類拆成每個帳戶各自擁有
+      const migRan = useRef(false);
+      useEffect(() => {
+        if (migRan.current || catsMigrated) return;
+        migRan.current = true;
+        const r = migrateCategories(categories, transactions, recurringRules, accounts);
+        if (r.changed) {
+          setCategories(r.categories);
+          setTransactions(r.transactions);
+          setRecurringRules(r.recurringRules);
+        }
+        setCatsMigrated(true);
+      }, []);
+
 
       const handleAddRecurring = (rule) => setRecurringRules(prev => [...prev, rule]);
 
@@ -456,39 +934,88 @@
         }
       }, [recurTick]);
 
-      // ---- 預算 ----
-      // 每個帳戶當月的支出總額（收入不計入預算使用量）
+      // ---- 預算（掛在「分類」上，不是帳戶）----
       const monthKey = ymOf(new Date());
-      const spentByAccount = useMemo(() => {
+
+      // 每個分類當月已花的金額（只算支出）
+      const spentByCategory = useMemo(() => {
         const m = {};
         transactions.forEach(t => {
           if (t.type !== 'expense') return;
           if (!String(t.date || '').startsWith(monthKey)) return;
-          m[t.accountId] = (m[t.accountId] || 0) + Number(t.amount || 0);
+          m[t.categoryId] = (m[t.categoryId] || 0) + Number(t.amount || 0);
         });
         return m;
       }, [transactions, monthKey]);
 
-      // 預算使用狀況；沒設定預算就回 null
-      const budgetInfo = (acc) => {
-        const budget = Number(acc?.budget || 0);
-        if (!budget) return null;
-        const spent = spentByAccount[acc.id] || 0;
-        const ratio = spent / budget;
-        const level = ratio >= 1 ? 'over' : ratio >= 0.8 ? 'warn' : 'ok';
+      const levelOf = (ratio) => (ratio >= 1 ? 'over' : ratio >= 0.8 ? 'warn' : 'ok');
+
+      const makeInfo = (budget, spent) => {
+        const ratio = budget > 0 ? spent / budget : 0;
         return {
           budget, spent,
           remain: budget - spent,
           percent: Math.round(ratio * 100),
           width: Math.min(100, Math.round(ratio * 100)),
-          level
+          level: levelOf(ratio)
         };
+      };
+
+      // 單一分類的預算狀況；沒設定就回 null
+      const budgetOfCategory = (cat) => {
+        if (!useBudget) return null;
+        const budget = Number(cat?.budget || 0);
+        if (!budget) return null;
+        return makeInfo(budget, spentByCategory[cat.id] || 0);
+      };
+
+      // 一個帳戶的預算總覽 = 該帳戶所有有設預算的分類加總
+      const budgetOfAccount = (accId) => {
+        if (!useBudget) return null;
+        const withBudget = categories.filter(c => c.accountId === accId && Number(c.budget) > 0);
+        if (!withBudget.length) return null;
+        const budget = withBudget.reduce((n, c) => n + Number(c.budget), 0);
+        const spent = withBudget.reduce((n, c) => n + (spentByCategory[c.id] || 0), 0);
+        return { ...makeInfo(budget, spent), count: withBudget.length };
       };
 
       const BUDGET_STYLE = {
         ok:   { bar: 'bg-sage',       text: 'text-sage-dark', label: '還很安全' },
         warn: { bar: 'bg-[#D9C6A5]',  text: 'text-ink',       label: '快用完了' },
         over: { bar: 'bg-clay',       text: 'text-clay-dark', label: '超支了' }
+      };
+
+      // 依條件刪除紀錄，並把這些紀錄對帳戶餘額的影響還原
+      const removeTransactions = (predicate) => {
+        const doomed = transactions.filter(predicate);
+        if (!doomed.length) return 0;
+        setAccounts(prev => prev.map(acc => {
+          const delta = doomed
+            .filter(t => t.accountId === acc.id)
+            .reduce((sum, t) => sum + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
+          return delta ? { ...acc, balance: acc.balance - delta } : acc;
+        }));
+        const gone = new Set(doomed.map(t => t.id));
+        setTransactions(prev => prev.filter(t => !gone.has(t.id)));
+        return doomed.length;
+      };
+
+      const countMatching = (predicate) => transactions.filter(predicate).length;
+
+      const runClear = (scope) => {
+        let n = 0;
+        if (scope.kind === 'all') {
+          n = removeTransactions(() => true);
+          setImportBatches([]);
+        } else if (scope.kind === 'imported') {
+          n = removeTransactions(t => t.source === 'csv');
+          setImportBatches([]);
+        } else if (scope.kind === 'batch') {
+          n = removeTransactions(t => t.batchId === scope.batchId);
+          setImportBatches(prev => prev.filter(b => b.id !== scope.batchId));
+        }
+        setPendingClear(null);
+        setImportDone(`已刪除 ${n} 筆紀錄，帳戶餘額也還原了。`);
       };
 
       // ---- 備份 / 還原 ----
@@ -505,7 +1032,8 @@
             categories,
             transactions,
             recurringRules,
-            settings: { useBank, fontScale, trendChart, selectedAccountId }
+            importBatches,
+            settings: { useBank, useBudget, fontScale, trendChart, selectedAccountId }
           }
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -540,13 +1068,24 @@
         const cats = Array.isArray(d.categories) && d.categories.length ? d.categories : INITIAL_CATEGORIES;
         const txs = d.transactions.filter(t => t && t.id && !isNaN(Number(t.amount)));
         const recs = Array.isArray(d.recurringRules) ? d.recurringRules : [];
+        const batches = Array.isArray(d.importBatches) ? d.importBatches : [];
+        // 舊版備份的分類沒有 accountId，這裡先升級再進來
+        const mig = migrateCategories(cats, txs, recs, accs);
+
         return {
           ok: true,
-          data: { accounts: accs, categories: cats, transactions: txs, recurringRules: recs, settings: d.settings || {} },
+          data: {
+            accounts: accs,
+            categories: mig.categories,
+            transactions: mig.transactions,
+            recurringRules: mig.recurringRules,
+            importBatches: batches,
+            settings: d.settings || {}
+          },
           summary: {
             accounts: accs.length,
-            categories: cats.length,
-            transactions: txs.length,
+            categories: mig.categories.length,
+            transactions: mig.transactions.length,
             recurring: recs.length,
             exportedAt: raw.exportedAt || ''
           }
@@ -559,8 +1098,10 @@
         setCategories(data.categories);
         setTransactions([...data.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)));
         setRecurringRules(data.recurringRules);
+        setImportBatches(data.importBatches || []);
         const st = data.settings || {};
         if (typeof st.useBank === 'boolean') setUseBank(st.useBank);
+        if (typeof st.useBudget === 'boolean') setUseBudget(st.useBudget);
         if (st.fontScale) setFontScale(st.fontScale);
         if (st.trendChart) setTrendChart(st.trendChart);
         setSelectedAccountId('all');
@@ -582,6 +1123,10 @@
 
         const existingRecIds = new Set(recurringRules.map(r => r.id));
         const newRecs = data.recurringRules.filter(r => !existingRecIds.has(r.id));
+
+        const existingBatchIds = new Set(importBatches.map(b => b.id));
+        const newBatches = (data.importBatches || []).filter(b => !existingBatchIds.has(b.id));
+        if (newBatches.length) setImportBatches(prev => [...prev, ...newBatches]);
 
         if (newAccs.length) setAccounts(prev => [...prev, ...newAccs]);
         if (newCats.length) setCategories(prev => [...prev, ...newCats]);
@@ -641,9 +1186,27 @@
       const accountOptions = [{ id: 'all', name: '全部帳戶 🐾' }, ...accounts];
 
       const groupedTransactions = useMemo(() => {
-        const filtered = selectedAccountId === 'all'
+        let filtered = selectedAccountId === 'all'
           ? transactions
           : transactions.filter(t => t.accountId === selectedAccountId);
+
+        if (queryType !== 'all') {
+          filtered = filtered.filter(t => t.type === queryType);
+        }
+
+        const q = query.trim().toLowerCase();
+        if (q) {
+          filtered = filtered.filter(t => {
+            const cat = categories.find(c => c.id === t.categoryId);
+            const acc = accounts.find(a => a.id === t.accountId);
+            const bank = (banksOf(acc).find(b => b.id === t.bankId) || {}).name || t.bankName || '';
+            const hay = [
+              t.note || '', cat?.name || '', acc?.name || '', bank,
+              String(t.amount), t.date || ''
+            ].join(' ').toLowerCase();
+            return hay.includes(q);
+          });
+        }
 
         const groups = {};
         filtered.forEach(tx => {
@@ -654,7 +1217,7 @@
           date,
           transactions: groups[date]
         }));
-      }, [transactions, selectedAccountId]);
+      }, [transactions, selectedAccountId, query, queryType, categories, accounts]);
 
       const handleAddTransaction = (newTx) => {
         setTransactions(prev => [newTx, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date)));
@@ -671,6 +1234,29 @@
       const handleAddCategory = (newCat) => {
         setCategories(prev => [...prev, newCat]);
       };
+
+      const [catDeleteWarn, setCatDeleteWarn] = useState(null);
+
+      const tryDeleteCategory = (cat) => {
+        const used = transactions.filter(t => t.categoryId === cat.id).length;
+        const usedRec = recurringRules.filter(r => r.categoryId === cat.id).length;
+        if (used || usedRec) {
+          setCatDeleteWarn({ name: cat.name, used, usedRec });
+          return;
+        }
+        setCategories(prev => prev.filter(c => c.id !== cat.id));
+      };
+
+      const handleUpdateCategory = (id, patch) => {
+        setCategories(prev => prev.map(c => (c.id === id ? { ...c, ...patch } : c)));
+      };
+
+      // 正在編輯的分類
+      const [editingCat, setEditingCat] = useState(null);
+      // 正在管理分類的帳戶
+      const [managingAccId, setManagingAccId] = useState(null);
+      // 在某個帳戶底下新增分類
+      const [addingCatFor, setAddingCatFor] = useState(null);   // { accountId, type }
 
       // 一筆紀錄對帳戶餘額的影響（收入為正、支出為負）
       const txEffect = (tx) => (tx.type === 'income' ? tx.amount : -tx.amount);
@@ -735,12 +1321,101 @@
           </div>
 
           <div className="px-1">
-            <div className="flex justify-between items-end mb-4">
-              <CatHeading cat={CATS.walk} h="h-14">最近紀錄</CatHeading>
+            <div className="flex flex-wrap justify-between items-end gap-2 mb-3">
+              <CatHeading cat={CATS.walk} h="h-14">
+                {searching ? '搜尋結果' : '最近紀錄'}
+              </CatHeading>
+              <select
+                value={selectedAccountId}
+                onChange={e => setSelectedAccountId(e.target.value)}
+                className="hd-pill bg-cream text-ink text-sm pl-3 py-2 font-bold cursor-pointer press-sm shrink-0 max-w-[60%] truncate"
+              >
+                {accountOptions.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 搜尋 */}
+            <div className="mb-4 space-y-2">
+              <div className="relative">
+                <i className="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-mist-600"></i>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="找備註、分類、帳戶或金額…"
+                  className="w-full hd-flat bg-cream pl-9 pr-10 py-2.5 text-sm text-ink"
+                />
+                {query && (
+                  <button
+                    onClick={() => setQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-mist-100 border-2 border-ink flex items-center justify-center"
+                    aria-label="清除"
+                  >
+                    <i className="ph-bold ph-x text-sm"></i>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                {[
+                  { k: 'all', label: '全部', on: 'bg-mist-400 text-ink' },
+                  { k: 'expense', label: '支出', on: 'bg-expense text-cream' },
+                  { k: 'income', label: '收入', on: 'bg-income text-cream' }
+                ].map(o => (
+                  <button
+                    key={o.k}
+                    onClick={() => setQueryType(o.k)}
+                    className={`flex-1 py-1.5 text-sm font-bold hd-pill-flat transition-colors ${queryType === o.k ? o.on : 'bg-cream text-mist-700'}`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+
+              {selectedAccountId !== 'all' && !searching && (
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <span className="text-sm font-bold text-mist-700 truncate">
+                    只顯示「{accounts.find(a => a.id === selectedAccountId)?.name || ''}」的紀錄
+                  </span>
+                  <button
+                    onClick={() => setSelectedAccountId('all')}
+                    className="text-sm font-bold text-mist-700 underline decoration-dashed underline-offset-4 shrink-0"
+                  >
+                    看全部
+                  </button>
+                </div>
+              )}
+
+              {searching && (
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <span className="text-sm font-bold text-mist-700">
+                    找到 {groupedTransactions.reduce((n, g) => n + g.transactions.length, 0)} 筆
+                    {(() => {
+                      const all = groupedTransactions.flatMap(g => g.transactions);
+                      const exp = all.filter(t => t.type === 'expense').reduce((n, t) => n + t.amount, 0);
+                      const inc = all.filter(t => t.type === 'income').reduce((n, t) => n + t.amount, 0);
+                      return (
+                        <>
+                          {exp > 0 && <span className="text-expense-dark">・支出 ${exp.toLocaleString()}</span>}
+                          {inc > 0 && <span className="text-income-dark">・收入 ${inc.toLocaleString()}</span>}
+                        </>
+                      );
+                    })()}
+                  </span>
+                  <button
+                    onClick={() => { setQuery(''); setQueryType('all'); }}
+                    className="text-sm font-bold text-mist-700 underline decoration-dashed underline-offset-4 shrink-0"
+                  >
+                    清除
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-5">
-              {(showAllTx ? groupedTransactions : groupedTransactions.slice(0, 5)).map(group => (
+              {((showAllTx || searching) ? groupedTransactions : groupedTransactions.slice(0, 5)).map(group => (
                 <div key={group.date} className="space-y-2">
                   <div className="text-sm font-bold text-mist-700 pl-2">{group.date}</div>
                   <div className="hd bg-cream overflow-hidden">
@@ -753,8 +1428,8 @@
                           className={`w-full text-left flex items-center justify-between p-3 active:bg-mist-50 transition-colors ${idx !== group.transactions.length - 1 ? 'border-b-2 border-dashed border-mist-300' : ''}`}
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className={`w-11 h-11 hd-circle flex items-center justify-center text-lg shrink-0 ${tx.type === 'expense' ? 'bg-clay-light' : 'bg-sage-light'}`} style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
-                              {cat.icon}
+                            <div className={`w-11 h-11 hd-circle flex items-center justify-center shrink-0 ${tx.type === 'expense' ? 'bg-expense-light text-expense-dark' : 'bg-income-light text-income-dark'}`} style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
+                              <CatIcon icon={cat.icon} size="1.55rem" />
                             </div>
                             <div className="min-w-0">
                               <p className="font-bold text-ink text-sm truncate">{cat.name}</p>
@@ -765,7 +1440,7 @@
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0 pl-2">
-                            <span className={`font-bold whitespace-nowrap ${tx.type === 'expense' ? 'text-clay-dark' : 'text-sage-dark'}`}>
+                            <span className={`font-bold whitespace-nowrap ${tx.type === 'expense' ? 'text-expense-dark' : 'text-income-dark'}`}>
                               {tx.type === 'expense' ? '-' : '+'} ${tx.amount.toLocaleString()}
                             </span>
                             <i className="ph-bold ph-pencil-simple text-mist-500"></i>
@@ -776,7 +1451,7 @@
                   </div>
                 </div>
               ))}
-              {groupedTransactions.length > 5 && (
+              {!searching && groupedTransactions.length > 5 && (
                 <button
                   onClick={() => setShowAllTx(v => !v)}
                   className="w-full hd-sm bg-cream text-ink font-bold py-3 press-sm flex items-center justify-center gap-2"
@@ -789,7 +1464,21 @@
               {groupedTransactions.length === 0 && (
                 <div className="text-center py-8 flex flex-col items-center">
                   <img src={CATS.sleep} alt="" className="cat w-60 mb-3 cat-bob" />
-                  <p className="text-mist-700 font-bold">這裡空空的喵~ 還沒有任何紀錄喔！</p>
+                  <p className="text-mist-700 font-bold">
+                    {searching
+                      ? '找不到符合的紀錄喵~'
+                      : selectedAccountId !== 'all'
+                        ? '這個資產還沒有紀錄喵~'
+                        : '這裡空空的喵~ 還沒有任何紀錄喔！'}
+                  </p>
+                  {searching && (
+                    <button
+                      onClick={() => { setQuery(''); setQueryType('all'); }}
+                      className="mt-3 hd-pill bg-cream text-ink px-4 py-2 text-sm font-bold press-sm"
+                    >
+                      清除搜尋條件
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -800,8 +1489,8 @@
       // 一頁式記帳：上面挑分類、下面用小算盤輸入金額，不用捲動
       const AddView = () => {
         const [type, setType] = useState('expense');
-        const [categoryId, setCategoryId] = useState(categories.filter(c => c.type === 'expense')[0]?.id);
         const [accountId, setAccountId] = useState(accounts[0]?.id || 'acc1');
+        const [categoryId, setCategoryId] = useState(catsOf(accounts[0]?.id, 'expense')[0]?.id);
 
         const now = new Date();
         const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
@@ -855,15 +1544,22 @@
           if (!bankId && accBanks.length === 1) setBankId(accBanks[0].id);
         }, [accountId, accounts]);
 
-        const currentCats = categories.filter(c => c.type === type);
+        const currentCats = catsOf(accountId, type);
         const selectedCat = categories.find(c => c.id === categoryId);
 
         // 切換支出/收入時，分類要跟著換成該類型的第一個
         const switchType = (t) => {
           setType(t);
-          const first = categories.filter(c => c.type === t)[0];
+          const first = catsOf(accountId, t)[0];
           setCategoryId(first ? first.id : undefined);
         };
+
+        // 換帳戶時，若原本選的分類不屬於新帳戶就換掉
+        useEffect(() => {
+          if (!currentCats.some(c => c.id === categoryId)) {
+            setCategoryId(currentCats[0] ? currentCats[0].id : undefined);
+          }
+        }, [accountId, type, categories]);
 
         const shiftDate = (delta) => {
           const d = new Date(date + 'T00:00:00');
@@ -941,20 +1637,20 @@
             <div className="flex hd-flat bg-mist-100 p-1 gap-1 mx-1 shrink-0">
               <button
                 onClick={() => switchType('expense')}
-                className={`flex-1 py-1.5 text-base font-bold rounded-full transition-colors ${type === 'expense' ? 'bg-clay text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
+                className={`flex-1 py-1.5 text-base font-bold rounded-full transition-colors ${type === 'expense' ? 'bg-expense text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
               >支出</button>
               <button
                 onClick={() => switchType('income')}
-                className={`flex-1 py-1.5 text-base font-bold rounded-full transition-colors ${type === 'income' ? 'bg-sage text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
+                className={`flex-1 py-1.5 text-base font-bold rounded-full transition-colors ${type === 'income' ? 'bg-income text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
               >收入</button>
             </div>
 
-            {/* 分類：一格一個，點一下就選好；橫向捲動，避免換行蓋住下面的金額卡 */}
-            <div className="hd bg-cream p-2 mx-1 relative">
-              <div className="flex gap-1 overflow-x-auto pr-6">
+            {/* 分類：一格一個，點一下就選好 */}
+            <div className="hd bg-cream p-2 mx-1">
+              <div className="grid grid-cols-5 gap-1">
                 <button
                   onClick={() => setShowAddCat(true)}
-                  className="flex flex-col items-center gap-2 py-1.5 rounded-2xl active:bg-mist-50 h-fit w-14 shrink-0"
+                  className="flex flex-col items-center gap-1 py-1.5 rounded-2xl active:bg-mist-50 h-fit"
                 >
                   <span className="w-11 h-11 hd-circle bg-mist-100 flex items-center justify-center text-lg" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
                     <i className="ph-bold ph-plus"></i>
@@ -968,13 +1664,13 @@
                     <button
                       key={c.id}
                       onClick={() => setCategoryId(c.id)}
-                      className="flex flex-col items-center gap-2 py-1.5 rounded-2xl active:bg-mist-50 h-fit w-14 shrink-0"
+                      className="flex flex-col items-center gap-1 py-1.5 rounded-2xl active:bg-mist-50 h-fit"
                     >
                       <span
-                        className={`w-11 h-11 hd-circle flex items-center justify-center text-lg transition-colors ${on ? (type === 'expense' ? 'bg-clay-light' : 'bg-sage-light') : 'bg-mist-50'}`}
+                        className={`w-11 h-11 hd-circle flex items-center justify-center transition-colors ${on ? (type === 'expense' ? 'bg-expense-light text-expense-dark' : 'bg-income-light text-income-dark') : 'bg-mist-50 text-ink'}`}
                         style={{ boxShadow: on ? '3px 3px 0 #2A2A2A' : '2px 2px 0 #2A2A2A' }}
                       >
-                        {c.icon}
+                        <CatIcon icon={c.icon} size="1.55rem" />
                       </span>
                       <span className={`text-sm truncate w-full text-center ${on ? 'font-bold text-ink' : 'text-mist-700'}`}>
                         {c.name}
@@ -983,26 +1679,27 @@
                   );
                 })}
               </div>
-              {/* 右側漸層：提示還可以往右滑，避免最後一個圖示看起來像被硬生生切斷 */}
-              <div
-                className="pointer-events-none absolute top-2 bottom-2 right-2 w-8"
-                style={{ background: 'linear-gradient(to right, rgba(253,251,247,0) 0%, #FDFBF7 75%)' }}
-              ></div>
             </div>
 
-            {/* 金額 + 小算盤：正常排版往下接，不用 sticky（分類數量不固定時，sticky 反而會浮上去蓋住分類卡） */}
-            <div className="-mx-3 px-3 pt-5 space-y-2">
+            {/* 金額 + 小算盤：吸在底部，隨時可按 */}
+            <div
+              className="sticky z-20 -mx-3 px-3 pt-2 space-y-2"
+              style={{
+                bottom: 'calc(4.4rem + env(safe-area-inset-bottom, 0px))',
+                background: 'linear-gradient(to bottom, rgba(232,239,243,0) 0%, #E8EFF3 12%)'
+              }}
+            >
             {/* 金額 + 備註 */}
             <div className="hd bg-cream p-2 mx-1 shrink-0">
               <div className="flex items-center gap-2">
-                <span className="w-10 h-10 hd-circle bg-mist-100 flex items-center justify-center text-lg shrink-0" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
-                  {selectedCat?.icon || '🐾'}
+                <span className="w-10 h-10 hd-circle bg-mist-100 flex items-center justify-center shrink-0 text-ink" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
+                  <CatIcon icon={selectedCat?.icon} size="1.45rem" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1">
                     <span className="text-sm font-bold text-mist-600 shrink-0">$</span>
                     <span
-                      className={`font-bold truncate ${type === 'expense' ? 'text-clay-dark' : 'text-sage-dark'}`}
+                      className={`font-bold truncate ${type === 'expense' ? 'text-expense-dark' : 'text-income-dark'}`}
                       style={{ fontSize: fitFont(String(shown), 1.7, 'min(100vw, 28rem) - 13rem') }}
                     >
                       {shown.toLocaleString()}
@@ -1142,13 +1839,11 @@
             </div>
             </div>
 
-            {/* 底部留白：避免最後一排按鍵被固定在畫面底部的導覽列蓋住 */}
-            <div style={{ height: 'calc(4.4rem + env(safe-area-inset-bottom, 0px))' }}></div>
-
             {/* 新增分類（改成彈窗，避免在窄畫面把版面撐破） */}
             {showAddCat && (
               <AddCatModal
                 type={type}
+                accountId={accountId}
                 onClose={() => setShowAddCat(false)}
                 onSaved={(id) => { setCategoryId(id); setShowAddCat(false); }}
               />
@@ -1157,19 +1852,281 @@
         );
       };
 
-      // 新增自訂分類
-      const AddCatModal = ({ type, onClose, onSaved }) => {
-        const [name, setName] = useState('');
-        const [icon, setIcon] = useState('🧶');
+      // 某個帳戶的分類管理：分成支出/收入，可設定各自的預算
+      const CategoryManager = ({ accId }) => {
+        const acc = accounts.find(a => a.id === accId);
+        const [tab, setTab] = useState('expense');
+        const list = catsOf(accId, tab);
+        const bi = budgetOfAccount(accId);
+        const st = bi ? BUDGET_STYLE[bi.level] : null;
 
-        const ICON_CHOICES = ['🐟', '🐾', '🧶', '🍱', '☕', '🍜', '🍰', '🚌', '🚕', '🏠', '💡', '🛒',
-                              '🎮', '🎁', '💊', '📚', '✈️', '💇', '👕', '💰', '📈', '🎵'];
+        return (
+          <div className="fixed inset-0 z-[116] bg-mist-900/45 backdrop-blur-sm flex items-center justify-center p-4 anim-in overflow-y-auto">
+            <div className="hd bg-cream w-full max-w-sm p-5 my-4" style={{ boxShadow: '6px 6px 0 #2A2A2A' }}>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <h2 className="text-xl font-bold text-ink flex items-center gap-2 min-w-0">
+                  <img src={CATS.sit} alt="" className="cat h-9 w-auto shrink-0" />
+                  <span className="truncate">{acc?.name || '分類'}</span>
+                </h2>
+                <button onClick={() => setManagingAccId(null)} className="w-9 h-9 shrink-0 hd-circle bg-mist-100 flex items-center justify-center" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
+                  <i className="ph-bold ph-x"></i>
+                </button>
+              </div>
+
+              {useBudget && bi && (
+                <div className="hd-flat bg-mist-50 p-3 mb-4">
+                  <div className="flex justify-between items-baseline gap-2 mb-1">
+                    <span className="text-sm font-bold text-mist-700 whitespace-nowrap">
+                      本月預算 {bi.percent}%
+                    </span>
+                    <span className={`text-sm font-bold whitespace-nowrap ${st.text}`}>
+                      {bi.level === 'over' ? '😿 ' : bi.level === 'warn' ? '🙀 ' : '😺 '}{st.label}
+                    </span>
+                  </div>
+                  <div className="bg-cream h-4 hd-pill-flat overflow-hidden">
+                    <div className={`${st.bar} h-full`}
+                      style={{ width: `${bi.width}%`, borderRight: bi.width > 0 && bi.width < 100 ? '2.5px solid #2A2A2A' : 'none' }} />
+                  </div>
+                  <p className="text-sm text-mist-700 mt-1.5">
+                    已用 ${bi.spent.toLocaleString()} / ${bi.budget.toLocaleString()}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex hd-flat bg-mist-100 p-1 gap-1 mb-4">
+                <button
+                  onClick={() => setTab('expense')}
+                  className={`flex-1 py-2 text-sm font-bold rounded-full transition-colors ${tab === 'expense' ? 'bg-expense text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
+                >支出 {catsOf(accId, 'expense').length}</button>
+                <button
+                  onClick={() => setTab('income')}
+                  className={`flex-1 py-2 text-sm font-bold rounded-full transition-colors ${tab === 'income' ? 'bg-income text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
+                >收入 {catsOf(accId, 'income').length}</button>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                {list.length === 0 && (
+                  <div className="text-center py-4">
+                    <img src={CATS.sleep} alt="" className="cat w-36 mx-auto mb-1" />
+                    <p className="text-sm text-mist-700 font-bold">
+                      這個資產還沒有{tab === 'expense' ? '支出' : '收入'}分類喵
+                    </p>
+                  </div>
+                )}
+
+                {list.map(cat => {
+                  const cbi = tab === 'expense' ? budgetOfCategory(cat) : null;
+                  const cst = cbi ? BUDGET_STYLE[cbi.level] : null;
+                  return (
+                    <div key={cat.id} className="hd-flat bg-mist-50 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <button onClick={() => setEditingCat(cat)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
+                          <span className={`w-9 h-9 hd-circle flex items-center justify-center shrink-0 ${cat.type === 'expense' ? 'bg-expense-light text-expense-dark' : 'bg-income-light text-income-dark'}`} style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
+                            <CatIcon icon={cat.icon} size="1.35rem" />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="font-bold text-ink text-base truncate">{cat.name}</div>
+                            <div className="text-sm text-mist-700 truncate">
+                              {useBudget && tab === 'expense'
+                                ? (cbi ? `分配 $${cbi.budget.toLocaleString()}` : '未設定預算')
+                                : '點一下編輯'}
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => tryDeleteCategory(cat)}
+                          className="w-9 h-9 shrink-0 flex items-center justify-center text-ink bg-clay-light hd-circle active:translate-y-px"
+                          style={{ boxShadow: '2px 2px 0 #2A2A2A' }}
+                          aria-label="刪除分類"
+                        >
+                          <i className="ph-bold ph-trash"></i>
+                        </button>
+                      </div>
+
+                      {cbi && (
+                        <div className="mt-2 pt-2" style={{ borderTop: '2.5px dashed rgba(42,42,42,0.2)' }}>
+                          <div className="bg-cream h-3.5 hd-pill-flat overflow-hidden">
+                            <div className={`${cst.bar} h-full`}
+                              style={{ width: `${cbi.width}%`, borderRight: cbi.width > 0 && cbi.width < 100 ? '2.5px solid #2A2A2A' : 'none' }} />
+                          </div>
+                          <div className="flex justify-between items-center gap-2 mt-1">
+                            <span className="text-sm text-mist-700 truncate">
+                              已花 ${cbi.spent.toLocaleString()}
+                            </span>
+                            <span className={`text-sm font-bold whitespace-nowrap ${cst.text}`}>
+                              {cbi.remain >= 0
+                                ? `剩 $${cbi.remain.toLocaleString()}`
+                                : `超支 $${Math.abs(cbi.remain).toLocaleString()}`}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setAddingCatFor({ accountId: accId, type: tab })}
+                className="w-full hd-sm bg-mist-400 py-3 text-ink font-bold press-sm"
+              >
+                <i className="ph-bold ph-plus"></i> 新增{tab === 'expense' ? '支出' : '收入'}分類
+              </button>
+            </div>
+          </div>
+        );
+      };
+
+      // 編輯既有分類（改名稱與圖示）
+      const EditCatModal = ({ cat }) => {
+        const [name, setName] = useState(cat.name);
+        const [icon, setIcon] = useState(cat.icon);
+        const [budget, setBudget] = useState(cat.budget ? String(cat.budget) : '');
+        const CHOICES = Object.keys(CAT_ICONS).map(k => 'cat:' + k);
+        const used = transactions.filter(t => t.categoryId === cat.id).length;
+        const spent = spentByCategory[cat.id] || 0;
+        const budgetNum = Number(budget) || 0;
+        const preview = budgetNum > 0 ? makeInfo(budgetNum, spent) : null;
+        const pst = preview ? BUDGET_STYLE[preview.level] : null;
+
+        const save = () => {
+          const trimmed = name.trim();
+          if (!trimmed) return;
+          handleUpdateCategory(cat.id, { name: trimmed, icon, budget: budgetNum });
+          setEditingCat(null);
+        };
+
+        return (
+          <div className="fixed inset-0 z-[118] bg-mist-900/45 backdrop-blur-sm flex items-center justify-center p-4 anim-in overflow-y-auto">
+            <div className="hd bg-cream w-full max-w-sm p-5 my-4" style={{ boxShadow: '6px 6px 0 #2A2A2A' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-ink flex items-center gap-2 min-w-0">
+                  <span className={`w-10 h-10 hd-circle flex items-center justify-center shrink-0 ${cat.type === 'expense' ? 'bg-expense-light text-expense-dark' : 'bg-income-light text-income-dark'}`} style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
+                    <CatIcon icon={icon} size="1.5rem" />
+                  </span>
+                  <span className="truncate">編輯分類</span>
+                </h2>
+                <button onClick={() => setEditingCat(null)} className="w-9 h-9 shrink-0 hd-circle bg-mist-100 flex items-center justify-center" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
+                  <i className="ph-bold ph-x"></i>
+                </button>
+              </div>
+
+              <label className="block text-sm font-bold text-mist-700 mb-1.5">分類名稱</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') save(); }}
+                className="w-full hd-flat bg-mist-50 p-3 text-base font-bold text-ink mb-4"
+              />
+
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-bold text-mist-700">圖示</label>
+                <button
+                  onClick={() => setIcon(guessCatIcon(name))}
+                  className="text-sm font-bold text-mist-700 underline decoration-dashed underline-offset-4"
+                >
+                  依名稱自動挑
+                </button>
+              </div>
+              <div className="grid grid-cols-6 gap-2 mb-4">
+                {CHOICES.map(ic => (
+                  <button
+                    key={ic}
+                    onClick={() => setIcon(ic)}
+                    className={`h-11 hd-circle flex items-center justify-center text-ink ${icon === ic ? 'bg-mist-400' : 'bg-mist-50'}`}
+                    style={{ boxShadow: '2px 2px 0 #2A2A2A' }}
+                  >
+                    <CatIcon icon={ic} size="1.5rem" />
+                  </button>
+                ))}
+              </div>
+
+              {useBudget && cat.type === 'expense' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-bold text-mist-700 mb-1.5">本月分配給這個分類的金額</label>
+                  <input
+                    type="number"
+                    value={budget}
+                    onChange={e => setBudget(e.target.value)}
+                    placeholder="不設定就留空"
+                    className="w-full hd-flat bg-mist-50 p-3 text-base font-bold text-ink"
+                  />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {[1000, 2000, 3000, 5000, 10000].map(v => (
+                      <button key={v} type="button" onClick={() => setBudget(String(v))}
+                        className={`text-sm font-bold px-3 py-1 hd-pill-flat ${String(v) === budget ? 'bg-mist-400' : 'bg-mist-50'}`}>
+                        {v.toLocaleString()}
+                      </button>
+                    ))}
+                    {budget && (
+                      <button type="button" onClick={() => setBudget('')}
+                        className="text-sm font-bold px-3 py-1 hd-pill-flat bg-clay-light">清除</button>
+                    )}
+                  </div>
+
+                  <div className="hd-flat bg-mist-50 p-3 mt-3">
+                    {preview ? (
+                      <>
+                        <div className="flex justify-between items-baseline gap-2 mb-1.5">
+                          <span className="text-sm font-bold text-mist-700 whitespace-nowrap">
+                            本月已花 ${spent.toLocaleString()}
+                          </span>
+                          <span className={`text-sm font-bold whitespace-nowrap ${pst.text}`}>
+                            {preview.remain >= 0
+                              ? `還剩 $${preview.remain.toLocaleString()}`
+                              : `超支 $${Math.abs(preview.remain).toLocaleString()}`}
+                          </span>
+                        </div>
+                        <div className="bg-cream h-4 hd-pill-flat overflow-hidden">
+                          <div className={`${pst.bar} h-full transition-all`}
+                            style={{ width: `${preview.width}%`, borderRight: preview.width > 0 && preview.width < 100 ? '2.5px solid #2A2A2A' : 'none' }} />
+                        </div>
+                        <p className={`text-sm font-bold mt-1.5 ${pst.text}`}>
+                          {preview.level === 'over' ? '😿 ' : preview.level === 'warn' ? '🙀 ' : '😺 '}
+                          {pst.label}（用了 {preview.percent}%）
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-mist-700">
+                        本月這個分類已經花了 ${spent.toLocaleString()}，設定金額後就能看到剩多少。
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-sm text-mist-700 mb-4">
+                {used > 0
+                  ? `這個分類目前有 ${used} 筆紀錄，改了名稱和圖示會一起更新。`
+                  : '這個分類還沒有紀錄。'}
+              </p>
+
+              <div className="flex gap-3">
+                <button onClick={() => setEditingCat(null)} className="flex-1 py-3 hd-sm bg-mist-100 text-ink font-bold press-sm">取消</button>
+                <button onClick={save} className="flex-1 py-3 hd-sm bg-mist-400 text-ink font-bold press-sm">儲存</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // 新增自訂分類
+      const AddCatModal = ({ type, accountId, onClose, onSaved }) => {
+        const [name, setName] = useState('');
+        const [icon, setIcon] = useState('cat:wave');
+
+        const ICON_CHOICES = Object.keys(CAT_ICONS).map(k => 'cat:' + k);
+
+        // 使用者沒特別挑圖示時，依名稱自動配一個
+        const [touchedIcon, setTouchedIcon] = useState(false);
+        const effectiveIcon = touchedIcon ? icon : guessCatIcon(name);
 
         const save = () => {
           const trimmed = name.trim();
           if (!trimmed) return;
           const newId = `cat_${Date.now()}`;
-          handleAddCategory({ id: newId, name: trimmed, icon, type });
+          handleAddCategory({ id: newId, name: trimmed, icon: effectiveIcon, type, accountId, budget: 0 });
           onSaved(newId);
         };
 
@@ -1201,11 +2158,11 @@
                 {ICON_CHOICES.map(ic => (
                   <button
                     key={ic}
-                    onClick={() => setIcon(ic)}
-                    className={`h-11 hd-circle flex items-center justify-center text-lg ${icon === ic ? 'bg-mist-400' : 'bg-mist-50'}`}
+                    onClick={() => { setIcon(ic); setTouchedIcon(true); }}
+                    className={`h-11 hd-circle flex items-center justify-center text-ink ${effectiveIcon === ic ? 'bg-mist-400' : 'bg-mist-50'}`}
                     style={{ boxShadow: '2px 2px 0 #2A2A2A' }}
                   >
-                    {ic}
+                    <CatIcon icon={ic} size="1.5rem" />
                   </button>
                 ))}
               </div>
@@ -1303,14 +2260,14 @@
             <div className="grid grid-cols-2 gap-4 px-1">
               <div className="hd-sm bg-cream p-4">
                 <p className="text-sm text-mist-700 mb-1 font-bold">當月總支出</p>
-                <p className="font-bold text-clay-dark whitespace-nowrap"
+                <p className="font-bold text-expense-dark whitespace-nowrap"
                    style={{ fontSize: fitFont(`NT$ ${totalExpense.toLocaleString()}`, 1.125, '(min(100vw, 28rem) - 3rem) / 2 - 2.4rem') }}>
                   NT$ {totalExpense.toLocaleString()}
                 </p>
               </div>
               <div className="hd-sm bg-cream p-4">
                 <p className="text-sm text-mist-700 mb-1 font-bold">當月總收入</p>
-                <p className="font-bold text-sage-dark whitespace-nowrap"
+                <p className="font-bold text-income-dark whitespace-nowrap"
                    style={{ fontSize: fitFont(`NT$ ${totalIncome.toLocaleString()}`, 1.125, '(min(100vw, 28rem) - 3rem) / 2 - 2.4rem') }}>
                   NT$ {totalIncome.toLocaleString()}
                 </p>
@@ -1363,7 +2320,9 @@
                     <div key={idx} className="flex justify-between items-center text-sm gap-2">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-4 h-4 rounded-full border-2 border-ink shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
-                        <span className="text-ink font-bold truncate">{item.icon} {item.name}</span>
+                        <span className="text-ink font-bold truncate flex items-center gap-1.5">
+                          <CatIcon icon={item.icon} size="1.15rem" /> {item.name}
+                        </span>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="text-mist-700 text-sm font-bold">{percent}%</span>
@@ -1412,8 +2371,8 @@
                           contentStyle={{ borderRadius: '12px', border: '2.5px solid #2A2A2A', background: '#FDFBF7', boxShadow: '3px 3px 0 #2A2A2A', fontSize: '15px' }}
                         />
                         <Legend verticalAlign="top" height={26} iconType="circle" wrapperStyle={{ fontSize: '14px', fontWeight: 'bold' }} />
-                        <Bar dataKey="expense" name="支出" fill="#C08D75" stroke="#2A2A2A" strokeWidth={2} radius={[5, 5, 0, 0]} />
-                        <Bar dataKey="income" name="收入" fill="#94B396" stroke="#2A2A2A" strokeWidth={2} radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="expense" name="支出" fill="#C98A69" stroke="#2A2A2A" strokeWidth={2} radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="income" name="收入" fill="#7FADA6" stroke="#2A2A2A" strokeWidth={2} radius={[5, 5, 0, 0]} />
                       </BarChart>
                     ) : (
                       <LineChart data={trendData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
@@ -1424,12 +2383,12 @@
                           contentStyle={{ borderRadius: '12px', border: '2.5px solid #2A2A2A', background: '#FDFBF7', boxShadow: '3px 3px 0 #2A2A2A', fontSize: '15px' }}
                         />
                         <Legend verticalAlign="top" height={26} iconType="circle" wrapperStyle={{ fontSize: '14px', fontWeight: 'bold' }} />
-                        <Line type="monotone" dataKey="expense" name="支出" stroke="#9C6C56" strokeWidth={3}
-                          dot={{ r: 3, fill: '#C08D75', stroke: '#2A2A2A', strokeWidth: 1.5 }}
-                          activeDot={{ r: 5, fill: '#C08D75', stroke: '#2A2A2A', strokeWidth: 2 }} />
-                        <Line type="monotone" dataKey="income" name="收入" stroke="#6D8E71" strokeWidth={3}
-                          dot={{ r: 3, fill: '#94B396', stroke: '#2A2A2A', strokeWidth: 1.5 }}
-                          activeDot={{ r: 5, fill: '#94B396', stroke: '#2A2A2A', strokeWidth: 2 }} />
+                        <Line type="monotone" dataKey="expense" name="支出" stroke="#9C6045" strokeWidth={3}
+                          dot={{ r: 3, fill: '#C98A69', stroke: '#2A2A2A', strokeWidth: 1.5 }}
+                          activeDot={{ r: 5, fill: '#C98A69', stroke: '#2A2A2A', strokeWidth: 2 }} />
+                        <Line type="monotone" dataKey="income" name="收入" stroke="#4F7F79" strokeWidth={3}
+                          dot={{ r: 3, fill: '#7FADA6', stroke: '#2A2A2A', strokeWidth: 1.5 }}
+                          activeDot={{ r: 5, fill: '#7FADA6', stroke: '#2A2A2A', strokeWidth: 2 }} />
                       </LineChart>
                     )}
                   </ResponsiveContainer>
@@ -1450,7 +2409,6 @@
         const [currentId, setCurrentId] = useState(null);
         const [name, setName] = useState('');
         const [balance, setBalance] = useState('');
-        const [budget, setBudget] = useState('');
         const [bankList, setBankList] = useState([]);
         const [newBankName, setNewBankName] = useState('');
         const [newBankType, setNewBankType] = useState('credit');
@@ -1459,7 +2417,6 @@
           setCurrentId(acc.id);
           setName(acc.name);
           setBalance(acc.balance);
-          setBudget(acc.budget ? String(acc.budget) : '');
           setBankList(banksOf(acc));
           setEditMode(true);
         };
@@ -1468,7 +2425,6 @@
           setCurrentId(null);
           setName('');
           setBalance('');
-          setBudget('');
           setBankList([]);
           setNewBankName('');
           setEditMode(true);
@@ -1480,7 +2436,7 @@
 
           if (currentId) {
             setAccounts(prev => prev.map(a =>
-              a.id === currentId ? { ...a, name, balance: Number(balance), banks: bankList, budget: Number(budget) || 0 } : a
+              a.id === currentId ? { ...a, name, balance: Number(balance), banks: bankList } : a
             ));
           } else {
             const newAcc = {
@@ -1488,8 +2444,7 @@
               name,
               balance: Number(balance),
               type: 'custom',
-              banks: bankList,
-              budget: Number(budget) || 0
+              banks: bankList
             };
             setAccounts(prev => [...prev, newAcc]);
           }
@@ -1541,33 +2496,11 @@
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-mist-700 mb-1.5">每月預算（選填）</label>
-                      <input
-                        type="number"
-                        value={budget}
-                        onChange={e => setBudget(e.target.value)}
-                        placeholder="不設定就留空"
-                        className="w-full hd-flat bg-mist-50 p-4 text-sm font-bold text-ink"
-                      />
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {[3000, 5000, 10000, 20000].map(v => (
-                          <button key={v} type="button" onClick={() => setBudget(String(v))}
-                            className={`text-sm font-bold px-3 py-1 hd-pill-flat ${String(v) === budget ? 'bg-mist-400' : 'bg-mist-50'}`}>
-                            {v.toLocaleString()}
-                          </button>
-                        ))}
-                        {budget && (
-                          <button type="button" onClick={() => setBudget('')}
-                            className="text-sm font-bold px-3 py-1 hd-pill-flat bg-clay-light">
-                            清除
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm text-mist-700 mt-2">
-                        只計算這個帳戶當月的「支出」，每個月會自動重新計算。
+                    {useBudget && (
+                      <p className="text-sm text-mist-700">
+                        <i className="ph-bold ph-info"></i> 預算改成設在每個分類上了，請到「設定 → 分類管理」裡設定。
                       </p>
-                    </div>
+                    )}
 
                     {useBank && (
                       <div>
@@ -1658,30 +2591,30 @@
             </div>
 
             {(() => {
-              const withBudget = accounts.filter(a => Number(a.budget) > 0);
+              if (!useBudget) return null;
+              const withBudget = categories.filter(c => Number(c.budget) > 0);
               if (!withBudget.length) return null;
-              const totalBudget = withBudget.reduce((s2, a) => s2 + Number(a.budget), 0);
-              const totalSpent = withBudget.reduce((s2, a) => s2 + (spentByAccount[a.id] || 0), 0);
-              const ratio = totalSpent / totalBudget;
-              const level = ratio >= 1 ? 'over' : ratio >= 0.8 ? 'warn' : 'ok';
-              const st = BUDGET_STYLE[level];
+              const totalBudget = withBudget.reduce((n, c) => n + Number(c.budget), 0);
+              const totalSpent = withBudget.reduce((n, c) => n + (spentByCategory[c.id] || 0), 0);
+              const info = makeInfo(totalBudget, totalSpent);
+              const st = BUDGET_STYLE[info.level];
               return (
                 <div className="hd bg-cream p-5 mx-1">
                   <div className="flex items-baseline justify-between gap-2 mb-1">
                     <h3 className="font-bold text-ink whitespace-nowrap">本月預算總覽</h3>
                     <span className={`text-sm font-bold whitespace-nowrap ${st.text}`}>
-                      {Math.round(ratio * 100)}%
+                      {info.percent}%
                     </span>
                   </div>
                   <p className="text-sm text-mist-700 mb-3">
-                    共 {withBudget.length} 個帳戶有設定預算
+                    共 {withBudget.length} 個分類有設定預算
                   </p>
                   <div className="bg-mist-50 h-5 hd-pill-flat overflow-hidden">
                     <div
                       className={`${st.bar} h-full transition-all`}
                       style={{
-                        width: `${Math.min(100, Math.round(ratio * 100))}%`,
-                        borderRight: ratio > 0 && ratio < 1 ? '2.5px solid #2A2A2A' : 'none'
+                        width: `${info.width}%`,
+                        borderRight: info.width > 0 && info.width < 100 ? '2.5px solid #2A2A2A' : 'none'
                       }}
                     />
                   </div>
@@ -1690,9 +2623,9 @@
                       已用 ${totalSpent.toLocaleString()} / ${totalBudget.toLocaleString()}
                     </span>
                     <span className={`text-sm font-bold whitespace-nowrap ${st.text}`}>
-                      {totalBudget - totalSpent >= 0
-                        ? `還剩 $${(totalBudget - totalSpent).toLocaleString()}`
-                        : `超支 $${Math.abs(totalBudget - totalSpent).toLocaleString()}`}
+                      {info.remain >= 0
+                        ? `還剩 $${info.remain.toLocaleString()}`
+                        : `超支 $${Math.abs(info.remain).toLocaleString()}`}
                     </span>
                   </div>
                 </div>
@@ -1725,14 +2658,14 @@
                   </div>
 
                   {(() => {
-                    const bi = budgetInfo(acc);
+                    const bi = budgetOfAccount(acc.id);
                     if (!bi) return null;
                     const st = BUDGET_STYLE[bi.level];
                     return (
                       <div className="hd-flat bg-mist-50 p-3">
                         <div className="flex items-baseline justify-between gap-2 mb-2">
                           <span className="text-sm font-bold text-mist-700 whitespace-nowrap">
-                            本月預算 {bi.percent}%
+                            本月預算 {bi.percent}%（{bi.count} 個分類）
                           </span>
                           <span className={`text-sm font-bold whitespace-nowrap ${st.text}`}>
                             {bi.remain >= 0
@@ -1795,11 +2728,18 @@
           if (bankId && !accBanks.some(b => b.id === bankId)) setBankId('');
         }, [accountId]);
 
-        const currentCats = categories.filter(c => c.type === type);
+        const currentCats = catsOf(accountId, type);
+
+        // 換帳戶後，原本的分類可能不屬於新帳戶
+        useEffect(() => {
+          if (!currentCats.some(c => c.id === categoryId)) {
+            setCategoryId(currentCats[0] ? currentCats[0].id : undefined);
+          }
+        }, [accountId, type]);
 
         const switchType = (t) => {
           setType(t);
-          const first = categories.filter(c => c.type === t)[0];
+          const first = catsOf(accountId, t)[0];
           if (first) setCategoryId(first.id);
         };
 
@@ -1829,11 +2769,11 @@
 
               <div className="flex hd-flat bg-mist-100 p-1 mb-4 gap-1">
                 <button
-                  className={`flex-1 py-2 text-sm font-bold rounded-full transition-colors ${type === 'expense' ? 'bg-clay text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
+                  className={`flex-1 py-2 text-sm font-bold rounded-full transition-colors ${type === 'expense' ? 'bg-expense text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
                   onClick={() => switchType('expense')}
                 >支出</button>
                 <button
-                  className={`flex-1 py-2 text-sm font-bold rounded-full transition-colors ${type === 'income' ? 'bg-sage text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
+                  className={`flex-1 py-2 text-sm font-bold rounded-full transition-colors ${type === 'income' ? 'bg-income text-cream border-[2.5px] border-ink' : 'text-mist-700 border-[2.5px] border-transparent'}`}
                   onClick={() => switchType('income')}
                 >收入</button>
               </div>
@@ -1853,7 +2793,7 @@
                     <label className="block text-sm font-bold text-mist-700 mb-1">分類</label>
                     <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
                       className="w-full hd-flat bg-mist-50 p-3 text-sm font-bold text-ink">
-                      {currentCats.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                      {currentCats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -1931,9 +2871,6 @@
           link.click();
         };
 
-        const deleteCategory = (id) => {
-          setCategories(prev => prev.filter(c => c.id !== id));
-        };
 
         return (
           <div className="pb-28 anim-in space-y-6">
@@ -1979,8 +2916,8 @@
                         <div key={rule.id} className={`hd-flat p-3 ${rule.active ? 'bg-mist-50' : 'bg-mist-50 opacity-60'}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-3 min-w-0">
-                              <span className="text-xl bg-cream w-9 h-9 hd-circle flex items-center justify-center shrink-0" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
-                                {cat?.icon || '🔄'}
+                              <span className="bg-cream w-9 h-9 hd-circle flex items-center justify-center shrink-0 text-ink" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
+                                <CatIcon icon={cat?.icon} size="1.35rem" />
                               </span>
                               <div className="min-w-0">
                                 <div className="font-bold text-ink truncate">
@@ -1993,7 +2930,7 @@
                                 </div>
                               </div>
                             </div>
-                            <span className={`font-bold whitespace-nowrap shrink-0 ${rule.type === 'expense' ? 'text-clay-dark' : 'text-sage-dark'}`}>
+                            <span className={`font-bold whitespace-nowrap shrink-0 ${rule.type === 'expense' ? 'text-expense-dark' : 'text-income-dark'}`}>
                               {rule.type === 'expense' ? '-' : '+'} ${Number(rule.amount).toLocaleString()}
                             </span>
                           </div>
@@ -2021,6 +2958,36 @@
                       * 刪除固定收支不會影響已經記進去的紀錄。
                     </p>
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* 預算規劃功能開關 */}
+            <div className="px-1">
+              <div className="hd bg-cream p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-ink mb-1">預算規劃</h3>
+                    <p className="text-sm text-mist-700">
+                      開啟後，每個資產可以設定每月預算，並在資產頁顯示使用進度與剩餘金額。
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setUseBudget(v => !v)}
+                    role="switch"
+                    aria-checked={useBudget}
+                    className={`shrink-0 w-16 h-9 hd-pill-flat relative transition-colors ${useBudget ? 'bg-sage' : 'bg-mist-100'}`}
+                  >
+                    <span
+                      className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-cream border-[2.5px] border-ink transition-all"
+                      style={{ left: useBudget ? 'calc(100% - 1.85rem)' : '0.2rem' }}
+                    />
+                  </button>
+                </div>
+                {!useBudget && (
+                  <p className="text-sm text-mist-700 mt-3">
+                    * 關閉只是不顯示，已設定的預算金額會保留著喵。
+                  </p>
                 )}
               </div>
             </div>
@@ -2078,7 +3045,7 @@
                   ref={fileInputRef}
                   type="file"
                   accept="application/json,.json"
-                  style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}
+                  className="hidden"
                   onChange={handlePickBackup}
                 />
 
@@ -2090,7 +3057,105 @@
                   </div>
                 )}
 
+                <button
+                  onClick={() => csvInputRef.current && csvInputRef.current.click()}
+                  className="w-full hd-sm bg-cream p-4 flex items-center justify-center gap-2 text-ink font-bold press-sm mt-3"
+                >
+                  <i className="ph-bold ph-file-csv text-xl"></i>
+                  匯入其他 App 的 CSV
+                </button>
+                <input
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv,text/csv,text/plain"
+                  className="hidden"
+                  onChange={handlePickCSV}
+                />
+
                 <hr className="hd-divider my-4" />
+
+                {(() => {
+                  const nAll = transactions.length;
+                  const nImported = countMatching(t => t.source === 'csv');
+                  const fmtBatch = (b) => {
+                    const d = new Date(b.at);
+                    return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+                  };
+
+                  if (pendingClear) {
+                    return (
+                      <div className="hd-flat bg-expense-light p-4 mb-3">
+                        <p className="text-sm font-bold text-ink mb-1">
+                          要刪掉{pendingClear.label}（{pendingClear.count} 筆）嗎？
+                        </p>
+                        <p className="text-sm text-mist-800 mb-3">
+                          帳戶餘額會跟著還原，帳戶、分類和固定收支都會留著。這個動作無法復原，建議先備份喵。
+                        </p>
+                        <div className="flex gap-2">
+                          <button onClick={() => setPendingClear(null)}
+                            className="flex-1 py-2 hd-pill-flat bg-cream text-ink text-sm font-bold">再想想</button>
+                          <button onClick={() => runClear(pendingClear)}
+                            className="flex-1 py-2 hd-pill-flat bg-expense text-cream text-sm font-bold">確定刪除</button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-2 mb-3">
+                      <p className="text-sm font-bold text-mist-700">刪除紀錄</p>
+
+                      <button
+                        onClick={() => setPendingClear({ kind: 'all', label: '全部紀錄', count: nAll })}
+                        disabled={nAll === 0}
+                        className={`w-full hd-sm p-3 flex items-center justify-between gap-2 font-bold press-sm ${nAll ? 'bg-cream text-ink' : 'bg-mist-50 text-mist-500'}`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <i className="ph-bold ph-eraser text-xl shrink-0"></i>
+                          <span className="truncate">刪除全部紀錄</span>
+                        </span>
+                        <span className="text-sm shrink-0">{nAll} 筆</span>
+                      </button>
+
+                      <button
+                        onClick={() => setPendingClear({ kind: 'imported', label: '匯入的紀錄', count: nImported })}
+                        disabled={nImported === 0}
+                        className={`w-full hd-sm p-3 flex items-center justify-between gap-2 font-bold press-sm ${nImported ? 'bg-cream text-ink' : 'bg-mist-50 text-mist-500'}`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <i className="ph-bold ph-file-csv text-xl shrink-0"></i>
+                          <span className="truncate">只刪除匯入的紀錄</span>
+                        </span>
+                        <span className="text-sm shrink-0">{nImported} 筆</span>
+                      </button>
+
+                      {importBatches.length > 0 && (
+                        <div className="hd-flat bg-mist-50 p-3">
+                          <p className="text-sm font-bold text-mist-700 mb-2">或只刪掉某一次匯入</p>
+                          <div className="space-y-2">
+                            {[...importBatches].reverse().map(b => {
+                              const left = countMatching(t => t.batchId === b.id);
+                              return (
+                                <div key={b.id} className="flex items-center justify-between gap-2">
+                                  <span className="text-sm text-mist-800 truncate min-w-0">
+                                    {fmtBatch(b)}・{left} 筆
+                                  </span>
+                                  <button
+                                    onClick={() => setPendingClear({ kind: 'batch', batchId: b.id, label: `${fmtBatch(b)} 匯入的紀錄`, count: left })}
+                                    disabled={left === 0}
+                                    className={`text-sm font-bold px-3 py-1.5 hd-pill-flat shrink-0 ${left ? 'bg-expense-light text-ink' : 'bg-cream text-mist-500'}`}
+                                  >
+                                    刪除
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <button
                   onClick={exportToCSV}
@@ -2117,37 +3182,80 @@
 
             <div className="px-1">
               <div className="hd bg-cream p-5">
-                <h3 className="font-bold text-ink mb-4">分類管理</h3>
-                <div className="space-y-3">
-                  {categories.map(cat => (
-                    <div key={cat.id} className="flex justify-between items-center bg-mist-50 p-3 hd-flat">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl bg-cream w-9 h-9 hd-circle flex items-center justify-center shrink-0" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>{cat.icon}</span>
-                        <div>
-                          <div className="font-bold text-ink text-base">{cat.name}</div>
-                          <div className="text-sm text-mist-700">{cat.type === 'expense' ? '支出' : '收入'}</div>
-                        </div>
-                      </div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h3 className="font-bold text-ink whitespace-nowrap">分類管理</h3>
+                  {(() => {
+                    const plain = categories.filter(c => c.icon === 'cat:wave' && guessCatIcon(c.name) !== 'cat:wave');
+                    if (!plain.length) return null;
+                    return (
                       <button
-                        onClick={() => deleteCategory(cat.id)}
-                        className="w-9 h-9 flex items-center justify-center text-ink bg-clay-light hd-circle active:translate-y-px"
-                        style={{ boxShadow: '2px 2px 0 #2A2A2A' }}
+                        onClick={() => {
+                          setCategories(prev => prev.map(c =>
+                            (c.icon === 'cat:wave' ? { ...c, icon: guessCatIcon(c.name) } : c)
+                          ));
+                        }}
+                        className="text-sm font-bold hd-pill bg-mist-400 text-ink px-3 py-1.5 press-sm shrink-0"
                       >
-                        <i className="ph-bold ph-trash"></i>
+                        <i className="ph-bold ph-magic-wand"></i> 自動配 {plain.length} 個
                       </button>
-                    </div>
-                  ))}
+                    );
+                  })()}
                 </div>
-                <hr className="hd-divider my-4" />
-                <p className="text-sm text-mist-700 text-center font-bold">
-                  * 新增分類請至下方「新增」頁面中操作喵
+                <p className="text-sm text-mist-700 mb-4">
+                  每個資產有自己的分類。點資產進去編輯它的收入/支出分類{useBudget ? '與預算' : ''}。
                 </p>
+
+                <div className="space-y-3">
+                  {accounts.map(acc => {
+                    const exp = catsOf(acc.id, 'expense').length;
+                    const inc = catsOf(acc.id, 'income').length;
+                    const bi = budgetOfAccount(acc.id);
+                    const st = bi ? BUDGET_STYLE[bi.level] : null;
+                    return (
+                      <button
+                        key={acc.id}
+                        onClick={() => setManagingAccId(acc.id)}
+                        className="w-full text-left hd-flat bg-mist-50 p-3 active:translate-y-px"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-bold text-ink text-base truncate">{acc.name}</div>
+                            <div className="text-sm text-mist-700">
+                              支出 {exp} 個・收入 {inc} 個
+                            </div>
+                          </div>
+                          <i className="ph-bold ph-caret-right text-mist-600 shrink-0"></i>
+                        </div>
+
+                        {bi && (
+                          <div className="mt-2 pt-2" style={{ borderTop: '2.5px dashed rgba(42,42,42,0.2)' }}>
+                            <div className="flex justify-between items-baseline gap-2 mb-1">
+                              <span className="text-sm font-bold text-mist-700 whitespace-nowrap">
+                                本月預算 {bi.percent}%
+                              </span>
+                              <span className={`text-sm font-bold whitespace-nowrap ${st.text}`}>
+                                {bi.remain >= 0
+                                  ? `還剩 $${bi.remain.toLocaleString()}`
+                                  : `超支 $${Math.abs(bi.remain).toLocaleString()}`}
+                              </span>
+                            </div>
+                            <div className="bg-cream h-3 hd-pill-flat overflow-hidden">
+                              <div className={`${st.bar} h-full`}
+                                style={{ width: `${bi.width}%`, borderRight: bi.width > 0 && bi.width < 100 ? '2.5px solid #2A2A2A' : 'none' }} />
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
             <div className="flex justify-center pt-2 pb-4">
               <img src={CATS.sleep} alt="" className="cat w-56 cat-bob" />
             </div>
+            <p className="text-center text-sm text-mist-700 pb-4">喵喵記帳 {APP_VERSION}</p>
           </div>
         );
       };
@@ -2218,6 +3326,37 @@
           </div>
 
           {editingTx && <EditTxModal tx={editingTx} />}
+          {managingAccId && <CategoryManager accId={managingAccId} />}
+          {addingCatFor && (
+            <AddCatModal
+              type={addingCatFor.type}
+              accountId={addingCatFor.accountId}
+              onClose={() => setAddingCatFor(null)}
+              onSaved={() => setAddingCatFor(null)}
+            />
+          )}
+          {editingCat && <EditCatModal cat={editingCat} />}
+
+          {catDeleteWarn && (
+            <div className="fixed inset-0 z-[130] bg-mist-900/45 backdrop-blur-sm flex items-center justify-center p-4 anim-in">
+              <div className="hd bg-cream w-full max-w-sm p-5" style={{ boxShadow: '6px 6px 0 #2A2A2A' }}>
+                <h2 className="text-xl font-bold text-ink mb-2">還不能刪掉喵</h2>
+                <p className="text-sm text-mist-800 mb-4">
+                  「{catDeleteWarn.name}」還有
+                  {catDeleteWarn.used ? ` ${catDeleteWarn.used} 筆紀錄` : ''}
+                  {catDeleteWarn.used && catDeleteWarn.usedRec ? '、' : ''}
+                  {catDeleteWarn.usedRec ? ` ${catDeleteWarn.usedRec} 筆固定收支` : ''}
+                  在用。直接刪掉的話那些紀錄會找不到分類，請先把它們改到別的分類再刪。
+                </p>
+                <button
+                  onClick={() => setCatDeleteWarn(null)}
+                  className="w-full hd-sm bg-mist-400 py-3 text-ink font-bold press-sm"
+                >
+                  知道了
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 匯入備份的確認視窗 */}
           {pendingImport && (
@@ -2285,6 +3424,214 @@
               </div>
             </div>
           )}
+
+          {/* CSV 欄位對應 */}
+          {csvDraft && (() => {
+            const preview = buildFromCSV(csvDraft, null);
+            const FIELDS = [
+              { key: 'date', label: '日期', required: true },
+              { key: 'amount', label: '金額', required: true },
+              { key: 'type', label: '收支類型', required: false },
+              { key: 'category', label: '分類', required: false },
+              { key: 'account', label: '帳戶', required: false },
+              { key: 'note', label: '備註', required: false }
+            ];
+            const ready = csvDraft.map.date >= 0 && csvDraft.map.amount >= 0 && preview.txs.length > 0;
+            return (
+              <div className="fixed inset-0 z-[125] bg-mist-900/45 backdrop-blur-sm flex items-center justify-center p-4 anim-in overflow-y-auto">
+                <div className="hd bg-cream w-full max-w-sm p-5 my-4" style={{ boxShadow: '6px 6px 0 #2A2A2A' }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-xl font-bold text-ink flex items-center gap-2 min-w-0">
+                      <img src={CATS.sit} alt="" className="cat h-9 w-auto shrink-0" />
+                      <span className="truncate">對一下欄位</span>
+                    </h2>
+                    <button onClick={() => setCsvDraft(null)} className="w-9 h-9 shrink-0 hd-circle bg-mist-100 flex items-center justify-center" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
+                      <i className="ph-bold ph-x"></i>
+                    </button>
+                  </div>
+
+                  <p className="text-sm text-mist-700 mb-4">
+                    已經幫你猜好了，下面會顯示每欄的實際內容，對不上再自己改。日期和金額一定要有。
+                  </p>
+
+                  {/* 要匯到哪個資產 */}
+                  <div className="hd-flat bg-mist-50 p-3 mb-4">
+                    <p className="text-sm font-bold text-mist-700 mb-2">這些紀錄要放到哪個資產？</p>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setCsvDraft(d => ({ ...d, destMode: 'existing' }))}
+                        className={`w-full text-left hd-flat p-2.5 ${csvDraft.destMode === 'existing' ? 'bg-mist-400' : 'bg-cream'}`}
+                      >
+                        <div className="font-bold text-ink text-sm">匯入現有資產</div>
+                        {csvDraft.destMode === 'existing' && (
+                          <select
+                            value={csvDraft.destAccountId}
+                            onChange={e => setCsvDraft(d => ({ ...d, destAccountId: e.target.value }))}
+                            onClick={e => e.stopPropagation()}
+                            className="w-full hd-flat bg-cream p-2 text-sm font-bold text-ink mt-2 truncate"
+                          >
+                            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                          </select>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => setCsvDraft(d => ({ ...d, destMode: 'new' }))}
+                        className={`w-full text-left hd-flat p-2.5 ${csvDraft.destMode === 'new' ? 'bg-mist-400' : 'bg-cream'}`}
+                      >
+                        <div className="font-bold text-ink text-sm">新增一個資產</div>
+                        {csvDraft.destMode === 'new' && (
+                          <input
+                            type="text"
+                            value={csvDraft.newAccName}
+                            onChange={e => setCsvDraft(d => ({ ...d, newAccName: e.target.value }))}
+                            onClick={e => e.stopPropagation()}
+                            placeholder="資產名稱"
+                            className="w-full hd-flat bg-cream p-2 text-sm font-bold text-ink mt-2"
+                          />
+                        )}
+                      </button>
+
+                      {csvDraft.map.account >= 0 && (
+                        <button
+                          onClick={() => setCsvDraft(d => ({ ...d, destMode: 'column' }))}
+                          className={`w-full text-left hd-flat p-2.5 ${csvDraft.destMode === 'column' ? 'bg-mist-400' : 'bg-cream'}`}
+                        >
+                          <div className="font-bold text-ink text-sm">照 CSV 的帳戶欄分開</div>
+                          <div className="text-sm text-mist-700 mt-0.5">
+                            找不到同名資產就自動新增
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    {FIELDS.map(f => {
+                      const col = csvDraft.map[f.key];
+                      // 這一欄的前幾個實際值，用來確認選對沒
+                      const samples = col >= 0
+                        ? csvDraft.rows.slice(0, 12).map(r => String(r[col] || '').trim()).filter(Boolean).slice(0, 3)
+                        : [];
+                      // 這一欄有沒有被其他用途重複選走
+                      const clash = col >= 0 && FIELDS.some(o => o.key !== f.key && csvDraft.map[o.key] === col);
+                      return (
+                        <div key={f.key}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-mist-700 w-20 shrink-0">
+                              {f.label}{f.required && <span className="text-expense-dark"> *</span>}
+                            </span>
+                            <select
+                              value={col}
+                              onChange={e => setCsvDraft(d => ({ ...d, map: { ...d.map, [f.key]: Number(e.target.value) } }))}
+                              className={`flex-1 min-w-0 hd-flat p-2 text-sm font-bold text-ink truncate ${col < 0 ? 'bg-mist-100 text-mist-600' : clash ? 'bg-expense-light' : 'bg-mist-50'}`}
+                            >
+                              <option value={-1}>（不使用）</option>
+                              {csvDraft.header.map((h, i) => (
+                                <option key={i} value={i}>{String(h).trim() || `第 ${i + 1} 欄`}</option>
+                              ))}
+                            </select>
+                          </div>
+                          {(samples.length > 0 || clash) && (
+                            <div className="pl-[5.5rem] mt-1">
+                              {samples.length > 0 && (
+                                <p className="text-sm text-mist-700 truncate">
+                                  內容：{samples.join('、')}
+                                </p>
+                              )}
+                              {clash && (
+                                <p className="text-sm font-bold text-expense-dark">
+                                  這一欄被重複指定了
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {csvDraft.map.type < 0 && (
+                    <div className="hd-flat bg-expense-light p-3 mb-4">
+                      <p className="text-sm font-bold text-ink mb-2">
+                        <i className="ph-bold ph-warning-circle"></i> 沒有找到「收支類型」欄位
+                      </p>
+                      <p className="text-sm text-mist-800 mb-2">那這些紀錄要當成什麼？</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {[
+                          { k: 'expense', label: '全部支出' },
+                          { k: 'income', label: '全部收入' },
+                          { k: 'sign', label: '看金額正負' }
+                        ].map(o => (
+                          <button
+                            key={o.k}
+                            onClick={() => setCsvDraft(d => ({ ...d, fallbackType: o.k }))}
+                            className={`text-sm font-bold px-3 py-1.5 hd-pill-flat ${csvDraft.fallbackType === o.k ? 'bg-mist-400' : 'bg-cream'}`}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="hd-flat bg-mist-50 p-3 mb-4">
+                    <p className="text-sm font-bold text-mist-700 mb-2">預覽</p>
+                    {preview.txs.length === 0 ? (
+                      <p className="text-sm text-clay-dark font-bold">讀不出資料，請檢查日期和金額欄位。</p>
+                    ) : (
+                      <>
+                        {preview.txs.slice(0, 3).map((t, i) => (
+                          <div key={i} className="flex justify-between gap-2 text-sm">
+                            <span className="text-mist-700 truncate">
+                              {t.date}・{t.note || '無備註'}
+                            </span>
+                            <span className={`font-bold whitespace-nowrap ${t.type === 'expense' ? 'text-expense-dark' : 'text-income-dark'}`}>
+                              {t.type === 'expense' ? '-' : '+'} ${t.amount.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                        <p className="text-sm font-bold mt-2">
+                          <span className="text-expense-dark">支出 {preview.txs.filter(t => t.type === 'expense').length} 筆</span>
+                          <span className="text-mist-700"> ・ </span>
+                          <span className="text-income-dark">收入 {preview.txs.filter(t => t.type === 'income').length} 筆</span>
+                        </p>
+                        <p className="text-sm text-mist-700 mt-1">
+                          共 {preview.txs.length} 筆可匯入
+                          {preview.skipped ? `，${preview.skipped} 筆會略過` : ''}
+                          {preview.newCats.length ? `，會新增 ${preview.newCats.length} 個分類` : ''}
+                        </p>
+                        <p className="text-sm text-mist-700 mt-1 truncate">
+                          放到：{
+                            csvDraft.destMode === 'new'
+                              ? `新資產「${String(csvDraft.newAccName || '').trim() || '匯入資產'}」`
+                              : csvDraft.destMode === 'existing'
+                                ? (accounts.find(a => a.id === csvDraft.destAccountId)?.name || '—')
+                                : `依 CSV 帳戶欄分開（會新增 ${preview.newAccs.length} 個資產）`
+                          }
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  <p className="text-sm text-mist-700 mb-3">
+                    * 匯入的紀錄會加在現有資料後面，並自動調整帳戶餘額。建議先做一次備份喵。
+                  </p>
+
+                  <div className="flex gap-3">
+                    <button onClick={() => setCsvDraft(null)} className="flex-1 py-3 hd-sm bg-mist-100 text-ink font-bold press-sm">取消</button>
+                    <button
+                      onClick={() => commitCSV(csvDraft)}
+                      disabled={!ready}
+                      className={`flex-1 py-3 hd-sm font-bold press-sm ${ready ? 'bg-mist-400 text-ink' : 'bg-mist-100 text-mist-500'}`}
+                    >
+                      匯入
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* 匯入完成 */}
           {importDone && (
@@ -2359,25 +3706,6 @@
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
-  </script>
-
-  <script>
-    // 註冊 Service Worker，讓網頁能被快取、離線也能開啟，並主動偵測新版本
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then((reg) => {
-        reg.update();
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') reg.update();
-        });
-      }).catch((err) => console.warn('Service Worker 註冊失敗:', err));
-
-      let swHasReloaded = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (swHasReloaded) return;
-        swHasReloaded = true;
-        window.location.reload();
-      });
-    }
   </script>
 </body>
 </html>
