@@ -7,6 +7,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="喵喵記帳">
   <meta name="theme-color" content="#E8EFF3">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icon-192.png">
   <title>喵喵記帳</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -3706,6 +3709,25 @@
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
+  </script>
+
+  <script>
+    // 註冊 Service Worker，讓網頁能被快取、離線也能開啟，並主動偵測新版本
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        reg.update();
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update();
+        });
+      }).catch((err) => console.warn('Service Worker 註冊失敗:', err));
+
+      let swHasReloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (swHasReloaded) return;
+        swHasReloaded = true;
+        window.location.reload();
+      });
+    }
   </script>
 </body>
 </html>
