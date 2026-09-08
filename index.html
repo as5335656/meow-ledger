@@ -246,7 +246,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v3';
+    const APP_VERSION = 'v4';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -1859,17 +1859,49 @@
       const CategoryManager = ({ accId }) => {
         const acc = accounts.find(a => a.id === accId);
         const [tab, setTab] = useState('expense');
+        const [editingName, setEditingName] = useState(false);
+        const [nameDraft, setNameDraft] = useState('');
         const list = catsOf(accId, tab);
         const bi = budgetOfAccount(accId);
         const st = bi ? BUDGET_STYLE[bi.level] : null;
+
+        const saveName = () => {
+          const trimmed = nameDraft.trim();
+          if (trimmed && trimmed !== acc?.name) {
+            setAccounts(prev => prev.map(a => a.id === accId ? { ...a, name: trimmed } : a));
+          }
+          setEditingName(false);
+        };
 
         return (
           <div className="fixed inset-0 z-[116] bg-mist-900/45 backdrop-blur-sm flex items-start justify-center p-4 anim-in overflow-y-auto">
             <div className="hd bg-cream w-full max-w-sm p-5 my-4" style={{ boxShadow: '6px 6px 0 #2A2A2A' }}>
               <div className="flex items-center justify-between gap-2 mb-4">
-                <h2 className="text-xl font-bold text-ink flex items-center gap-2 min-w-0">
+                <h2 className="text-xl font-bold text-ink flex items-center gap-2 min-w-0 flex-1">
                   <img src={CATS.sit} alt="" className="cat h-9 w-auto shrink-0" />
-                  <span className="truncate">{acc?.name || '分類'}</span>
+                  {editingName ? (
+                    <input
+                      type="text"
+                      autoFocus
+                      value={nameDraft}
+                      onChange={e => setNameDraft(e.target.value)}
+                      onBlur={saveName}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); saveName(); }
+                        if (e.key === 'Escape') setEditingName(false);
+                      }}
+                      className="flex-1 min-w-0 hd-flat bg-mist-50 px-2 py-1 text-lg font-bold text-ink"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setNameDraft(acc?.name || ''); setEditingName(true); }}
+                      className="flex items-center gap-1.5 min-w-0"
+                    >
+                      <span className="truncate">{acc?.name || '分類'}</span>
+                      <i className="ph-bold ph-pencil-simple text-base text-mist-600 shrink-0"></i>
+                    </button>
+                  )}
                 </h2>
                 <button onClick={() => setManagingAccId(null)} className="w-9 h-9 shrink-0 hd-circle bg-mist-100 flex items-center justify-center" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
                   <i className="ph-bold ph-x"></i>
