@@ -246,7 +246,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v6';
+    const APP_VERSION = 'v7';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -1624,7 +1624,7 @@
         };
 
         return (
-          <div className="anim-in flex flex-col gap-2" style={{ paddingTop: '2rem', paddingBottom: '1rem' }}>
+          <div className="anim-in flex flex-col gap-2" style={{ paddingTop: '2rem', paddingBottom: '7rem' }}>
             {/* 標題 + 伸懶腰的貓（貓會壓過下面那條，像趴在邊緣上） */}
             <div className="relative px-1 shrink-0" style={{ height: '1.9rem' }}>
               <h2 className="text-xl font-bold text-ink whitespace-nowrap absolute left-1 bottom-0">記一筆喵</h2>
@@ -1684,14 +1684,8 @@
               </div>
             </div>
 
-            {/* 金額 + 小算盤：吸在底部，隨時可按 */}
-            <div
-              className="sticky z-20 -mx-3 px-3 pt-2 space-y-2"
-              style={{
-                bottom: 'calc(4.4rem + env(safe-area-inset-bottom, 0px))',
-                background: 'linear-gradient(to bottom, rgba(232,239,243,0) 0%, #E8EFF3 12%)'
-              }}
-            >
+            {/* 金額 + 小算盤 */}
+            <div className="-mx-3 px-3 pt-2 space-y-2">
             {/* 金額 + 備註 */}
             <div className="hd bg-cream p-2 mx-1 shrink-0">
               <div className="flex items-center gap-2">
