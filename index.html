@@ -246,7 +246,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v4';
+    const APP_VERSION = 'v5';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -2212,9 +2212,15 @@
       };
 
       const ReportView = () => {
+        const [selectedAccountId, setSelectedAccountId] = useState('all');
+
+        const scopedTx = useMemo(() => (
+          selectedAccountId === 'all' ? transactions : transactions.filter(tx => tx.accountId === selectedAccountId)
+        ), [transactions, selectedAccountId]);
+
         const months = useMemo(() => {
           const monthSet = new Set();
-          transactions.forEach(tx => {
+          scopedTx.forEach(tx => {
             monthSet.add(tx.date.substring(0, 7)); // 取 YYYY-MM
           });
           const arr = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
@@ -2223,7 +2229,7 @@
             arr.push(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
           }
           return arr;
-        }, [transactions]);
+        }, [scopedTx]);
 
         const [selectedMonth, setSelectedMonth] = useState(months[0] || '');
 
@@ -2236,7 +2242,7 @@
         const { totalExpense, totalIncome, expenseData, trendData } = useMemo(() => {
           if (!selectedMonth) return { totalExpense: 0, totalIncome: 0, expenseData: [], trendData: [] };
 
-          const monthTx = transactions.filter(tx => tx.date.startsWith(selectedMonth));
+          const monthTx = scopedTx.filter(tx => tx.date.startsWith(selectedMonth));
 
           let exp = 0;
           let inc = 0;
@@ -2275,21 +2281,33 @@
           const tData = Object.values(dayMap);
 
           return { totalExpense: exp, totalIncome: inc, expenseData: eData, trendData: tData };
-        }, [transactions, selectedMonth, categories]);
+        }, [scopedTx, selectedMonth, categories]);
 
         return (
           <div className="pb-28 anim-in space-y-6">
             <div className="flex flex-wrap justify-between items-center px-1 gap-2">
               <CatHeading cat={CATS.sit} h="h-12">收支報表喵</CatHeading>
-              <select
-                value={selectedMonth}
-                onChange={e => setSelectedMonth(e.target.value)}
-                className="hd-pill bg-cream text-ink text-sm px-3 py-2 font-bold cursor-pointer press-sm shrink-0"
-              >
-                {months.map(m => (
-                  <option key={m} value={m}>{m.replace('-', '/')}</option>
-                ))}
-              </select>
+              <div className="flex gap-2 shrink-0">
+                <select
+                  value={selectedAccountId}
+                  onChange={e => setSelectedAccountId(e.target.value)}
+                  className="hd-pill bg-cream text-ink text-sm px-3 py-2 font-bold cursor-pointer press-sm shrink-0 max-w-[8.5rem] truncate"
+                >
+                  <option value="all">全部資產</option>
+                  {accounts.map(a => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedMonth}
+                  onChange={e => setSelectedMonth(e.target.value)}
+                  className="hd-pill bg-cream text-ink text-sm px-3 py-2 font-bold cursor-pointer press-sm shrink-0"
+                >
+                  {months.map(m => (
+                    <option key={m} value={m}>{m.replace('-', '/')}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 px-1">
