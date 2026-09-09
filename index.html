@@ -246,7 +246,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v5';
+    const APP_VERSION = 'v6';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -3317,20 +3317,22 @@
         <div className="min-h-screen">
           <div className="max-w-md mx-auto h-full min-h-screen flex flex-col relative">
 
-            <header className="pt-8 pb-4 px-4 flex justify-between items-center sticky top-0 bg-[#E8EFF3]/90 backdrop-blur-md z-40">
-              <div className="flex items-center gap-3">
-                <div className="hd-circle bg-cream w-14 h-14 flex items-center justify-center overflow-hidden">
-                  <img src={CATS.loaf} alt="喵喵" className="cat h-10 w-auto translate-y-1" />
+            {activeTab === 'home' && (
+              <header className="pt-8 pb-4 px-4 flex justify-between items-center sticky top-0 bg-[#E8EFF3]/90 backdrop-blur-md z-40">
+                <div className="flex items-center gap-3">
+                  <div className="hd-circle bg-cream w-14 h-14 flex items-center justify-center overflow-hidden">
+                    <img src={CATS.loaf} alt="喵喵" className="cat h-10 w-auto translate-y-1" />
+                  </div>
+                  <div>
+                    <h1 className="font-bold text-xl text-ink tracking-tight leading-tight">喵喵記帳</h1>
+                    <p className="text-xs text-mist-700 font-bold whitespace-nowrap">Meow Finance</p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="font-bold text-xl text-ink tracking-tight leading-tight">喵喵記帳</h1>
-                  <p className="text-xs text-mist-700 font-bold whitespace-nowrap">Meow Finance</p>
+                <div className="w-12 h-12 hd-circle bg-mist-200 flex items-center justify-center overflow-hidden">
+                  <img src={CATS.sleep} alt="" className="cat w-10 h-auto" />
                 </div>
-              </div>
-              <div className="w-12 h-12 hd-circle bg-mist-200 flex items-center justify-center overflow-hidden">
-                <img src={CATS.sleep} alt="" className="cat w-10 h-auto" />
-              </div>
-            </header>
+              </header>
+            )}
 
             <main className="flex-1 px-3 py-2 overflow-y-auto">
               {activeTab === 'home' && renderHome()}
