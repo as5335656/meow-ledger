@@ -246,7 +246,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v10';
+    const APP_VERSION = 'v11';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -2710,13 +2710,13 @@
               <h3 className="font-bold text-ink pl-1">帳戶列表</h3>
               {accounts.map(acc => (
                 <div key={acc.id} className="hd bg-cream p-4 flex flex-col gap-3">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-11 h-11 hd-circle bg-mist-100 flex items-center justify-center text-xl shrink-0" style={{ boxShadow: '2px 2px 0 #2A2A2A' }}>
                         {acc.name.includes('🏦') ? '🏦' : acc.name.includes('📈') ? '📈' : acc.name.includes('🐟') ? '🐟' : '💰'}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-bold text-ink text-base truncate">{acc.name}</div>
+                        <div className="font-bold text-ink text-base truncate leading-tight">{acc.name}</div>
                         {acc.includeInTotal === false && (
                           <span className="inline-block text-sm font-bold px-1.5 py-0.5 hd-pill-flat bg-mist-100 text-mist-700 whitespace-nowrap mt-1">
                             不計入總資產
@@ -2733,7 +2733,7 @@
                         )}
                       </div>
                     </div>
-                    <span className="font-bold text-mist-700 text-base whitespace-nowrap pl-2 shrink-0">NT$ {acc.balance.toLocaleString()}</span>
+                    <span className="font-bold text-mist-700 text-base whitespace-nowrap pl-2 shrink-0 leading-tight">NT$ {acc.balance.toLocaleString()}</span>
                   </div>
 
                   {(() => {
