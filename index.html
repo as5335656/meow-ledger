@@ -246,7 +246,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v12';
+    const APP_VERSION = 'v13';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -2060,14 +2060,15 @@
               </div>
               <div className="grid grid-cols-6 gap-2 mb-4">
                 {CHOICES.map(ic => (
-                  <button
-                    key={ic}
-                    onClick={() => setIcon(ic)}
-                    className={`h-11 hd-circle flex items-center justify-center text-ink ${icon === ic ? 'bg-mist-400' : 'bg-mist-50'}`}
-                    style={{ boxShadow: '2px 2px 0 #2A2A2A' }}
-                  >
-                    <CatIcon icon={ic} size="1.5rem" />
-                  </button>
+                  <div key={ic} className="relative w-full" style={{ paddingTop: '100%' }}>
+                    <button
+                      onClick={() => setIcon(ic)}
+                      className={`absolute inset-0 hd-circle flex items-center justify-center text-ink ${icon === ic ? 'bg-mist-400' : 'bg-mist-50'}`}
+                      style={{ boxShadow: '2px 2px 0 #2A2A2A' }}
+                    >
+                      <CatIcon icon={ic} size="1.5rem" />
+                    </button>
+                  </div>
                 ))}
               </div>
 
@@ -2185,14 +2186,15 @@
               <label className="block text-sm font-bold text-mist-700 mb-1.5">挑一個圖示</label>
               <div className="grid grid-cols-6 gap-2 mb-4">
                 {ICON_CHOICES.map(ic => (
-                  <button
-                    key={ic}
-                    onClick={() => { setIcon(ic); setTouchedIcon(true); }}
-                    className={`h-11 hd-circle flex items-center justify-center text-ink ${effectiveIcon === ic ? 'bg-mist-400' : 'bg-mist-50'}`}
-                    style={{ boxShadow: '2px 2px 0 #2A2A2A' }}
-                  >
-                    <CatIcon icon={ic} size="1.5rem" />
-                  </button>
+                  <div key={ic} className="relative w-full" style={{ paddingTop: '100%' }}>
+                    <button
+                      onClick={() => { setIcon(ic); setTouchedIcon(true); }}
+                      className={`absolute inset-0 hd-circle flex items-center justify-center text-ink ${effectiveIcon === ic ? 'bg-mist-400' : 'bg-mist-50'}`}
+                      style={{ boxShadow: '2px 2px 0 #2A2A2A' }}
+                    >
+                      <CatIcon icon={ic} size="1.5rem" />
+                    </button>
+                  </div>
                 ))}
               </div>
 
