@@ -246,7 +246,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v8';
+    const APP_VERSION = 'v9';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -2716,14 +2716,12 @@
                         {acc.name.includes('🏦') ? '🏦' : acc.name.includes('📈') ? '📈' : acc.name.includes('🐟') ? '🐟' : '💰'}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <div className="font-bold text-ink text-base truncate">{acc.name}</div>
-                          {acc.includeInTotal === false && (
-                            <span className="text-sm font-bold px-1.5 py-0.5 hd-pill-flat bg-mist-100 text-mist-700 whitespace-nowrap shrink-0">
-                              不計入總資產
-                            </span>
-                          )}
-                        </div>
+                        <div className="font-bold text-ink text-base truncate">{acc.name}</div>
+                        {acc.includeInTotal === false && (
+                          <span className="inline-block text-sm font-bold px-1.5 py-0.5 hd-pill-flat bg-mist-100 text-mist-700 whitespace-nowrap mt-1">
+                            不計入總資產
+                          </span>
+                        )}
                         {useBank && banksOf(acc).length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {banksOf(acc).map(b => (
