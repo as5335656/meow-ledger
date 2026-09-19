@@ -1420,7 +1420,18 @@
             <div className="space-y-5">
               {((showAllTx || searching) ? groupedTransactions : groupedTransactions.slice(0, 5)).map(group => (
                 <div key={group.date} className="space-y-2">
-                  <div className="text-sm font-bold text-mist-700 pl-2">{group.date}</div>
+                  <div className="flex items-center justify-between pl-2 pr-1">
+                    <span className="text-sm font-bold text-mist-700">{group.date}</span>
+                    {(() => {
+                      const dayTotal = group.transactions.reduce((n, t) => n + (t.type === 'income' ? t.amount : -t.amount), 0);
+                      if (dayTotal === 0) return null;
+                      return (
+                        <span className={`text-sm font-bold ${dayTotal > 0 ? 'text-income-dark' : 'text-expense-dark'}`}>
+                          {dayTotal > 0 ? '+' : '-'} ${Math.abs(dayTotal).toLocaleString()}
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <div className="hd bg-cream overflow-hidden">
                     {group.transactions.map((tx, idx) => {
                       const cat = categories.find(c => c.id === tx.categoryId) || { icon: '❓', name: '未知' };
