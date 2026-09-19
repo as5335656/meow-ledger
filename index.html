@@ -246,7 +246,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v14';
+    const APP_VERSION = 'v15';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -1560,6 +1560,8 @@
 
         const currentCats = catsOf(accountId, type);
         const selectedCat = categories.find(c => c.id === categoryId);
+        // 選定分類的本月預算剩餘（跟目前輸入中的金額無關，只看已存的紀錄）
+        const catBudgetInfo = type === 'expense' ? budgetOfCategory(selectedCat) : null;
 
         // 切換支出/收入時，分類要跟著換成該類型的第一個
         const switchType = (t) => {
@@ -1719,6 +1721,14 @@
                     </div>
                   )}
                 </div>
+                {catBudgetInfo && (
+                  <div className="shrink-0 text-right px-1">
+                    <p className="text-sm text-mist-700 font-bold whitespace-nowrap">本月剩</p>
+                    <p className={`text-sm font-bold whitespace-nowrap ${catBudgetInfo.remain < 0 ? 'text-expense-dark' : 'text-ink'}`}>
+                      ${catBudgetInfo.remain.toLocaleString()}
+                    </p>
+                  </div>
+                )}
                 <input
                   type="text"
                   value={note}
