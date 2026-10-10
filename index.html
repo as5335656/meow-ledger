@@ -252,7 +252,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v16';
+    const APP_VERSION = 'v17';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -665,6 +665,8 @@
 
       // 趨勢圖顯示方式：直條圖 or 折線圖
       const [trendChart, setTrendChart] = useLocalStorage('meow_trendChart', 'bar');
+      // 報表「支出結構」目前展開明細的分類
+      const [reportOpenCatId, setReportOpenCatId] = useState(null);
 
       // 某個帳戶底下的分類
       const catsOf = (accId, type) =>
@@ -1715,8 +1717,8 @@
                   <div className="flex items-baseline gap-1">
                     <span className="text-sm font-bold text-mist-600 shrink-0">$</span>
                     <span
-                      className={`font-bold truncate ${type === 'expense' ? 'text-expense-dark' : 'text-income-dark'}`}
-                      style={{ fontSize: fitFont(String(shown), 1.7, 'min(100vw, 28rem) - 13rem') }}
+                      className={`font-bold whitespace-nowrap ${type === 'expense' ? 'text-expense-dark' : 'text-income-dark'}`}
+                      style={{ fontSize: fitFont(shown.toLocaleString(), 1.7, 'min(100vw, 28rem) - 13rem') }}
                     >
                       {shown.toLocaleString()}
                     </span>
@@ -1726,15 +1728,15 @@
                       {acc?.toLocaleString()} {op} {entry}
                     </div>
                   )}
-                </div>
-                {catBudgetInfo && (
-                  <div className="shrink-0 text-right px-1">
-                    <p className="text-sm text-mist-700 font-bold whitespace-nowrap">本月剩</p>
-                    <p className={`text-sm font-bold whitespace-nowrap ${catBudgetInfo.remain < 0 ? 'text-expense-dark' : 'text-ink'}`}>
-                      ${catBudgetInfo.remain.toLocaleString()}
+                  {catBudgetInfo && (
+                    <p className="text-sm text-mist-700 font-bold whitespace-nowrap">
+                      本月剩{' '}
+                      <span className={catBudgetInfo.remain < 0 ? 'text-expense-dark' : 'text-ink'}>
+                        ${catBudgetInfo.remain.toLocaleString()}
+                      </span>
                     </p>
-                  </div>
-                )}
+                  )}
+                </div>
                 <input
                   type="text"
                   value={note}
@@ -2295,9 +2297,13 @@
           const eData = Object.keys(expCategoryMap).map(catId => {
             const cat = categories.find(c => c.id === catId);
             return {
+              catId,
               name: cat ? cat.name : '未知',
               value: expCategoryMap[catId],
-              icon: cat ? cat.icon : '❓'
+              icon: cat ? cat.icon : '❓',
+              txs: monthTx
+                .filter(tx => tx.type === 'expense' && tx.categoryId === catId)
+                .sort((a, b) => b.date.localeCompare(a.date))
             };
           }).sort((a, b) => b.value - a.value);
 
@@ -2392,18 +2398,43 @@
               <div className="space-y-3 mt-5">
                 {expenseData.map((item, idx) => {
                   const percent = ((item.value / totalExpense) * 100).toFixed(1);
+                  const open = reportOpenCatId === item.catId;
                   return (
-                    <div key={idx} className="flex justify-between items-center text-sm gap-2">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-4 h-4 rounded-full border-2 border-ink shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
-                        <span className="text-ink font-bold truncate flex items-center gap-1.5">
-                          <CatIcon icon={item.icon} size="1.15rem" /> {item.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-mist-700 text-sm font-bold">{percent}%</span>
-                        <span className="font-bold text-ink text-right whitespace-nowrap">NT$ {item.value.toLocaleString()}</span>
-                      </div>
+                    <div key={item.catId}>
+                      <button
+                        onClick={() => setReportOpenCatId(open ? null : item.catId)}
+                        className="w-full text-left flex justify-between items-center text-sm gap-2"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-4 h-4 rounded-full border-2 border-ink shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
+                          <span className="text-ink font-bold truncate flex items-center gap-1.5">
+                            <CatIcon icon={item.icon} size="1.15rem" /> {item.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-mist-700 text-sm font-bold">{percent}%</span>
+                          <span className="font-bold text-ink text-right whitespace-nowrap">NT$ {item.value.toLocaleString()}</span>
+                          <i className={`ph-bold ${open ? 'ph-caret-up' : 'ph-caret-down'} text-mist-500`}></i>
+                        </div>
+                      </button>
+                      {open && (
+                        <div className="hd-flat bg-mist-50 mt-2 overflow-hidden">
+                          {item.txs.map((tx, i) => (
+                            <button
+                              key={tx.id}
+                              onClick={() => setEditingTx(tx)}
+                              className={`w-full text-left flex items-center justify-between gap-2 px-3 py-2 text-sm active:bg-mist-100 ${i !== item.txs.length - 1 ? 'border-b-2 border-dashed border-mist-300' : ''}`}
+                            >
+                              <span className="text-mist-700 font-bold shrink-0">{tx.date.substring(5).replace('-', '/')}</span>
+                              <span className="text-ink truncate flex-1 min-w-0">
+                                {useBank && bankLabelOf(tx) ? bankLabelOf(tx) + '・' : ''}
+                                {tx.note || '無備註'} {tx.isRecurring && '🔄'}
+                              </span>
+                              <span className="font-bold text-expense-dark whitespace-nowrap shrink-0">${tx.amount.toLocaleString()}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2863,8 +2894,9 @@
         };
 
         return (
-          <div className="fixed inset-0 z-[110] bg-mist-900/45 backdrop-blur-sm flex items-end sm:items-start justify-center p-3 anim-in overflow-y-auto">
-            <div className="hd bg-cream w-full max-w-sm p-5 my-4" style={{ boxShadow: '6px 6px 0 #2A2A2A' }}>
+          <div className="fixed inset-0 z-[110] bg-mist-900/45 backdrop-blur-sm flex items-start justify-center p-3 anim-in overflow-y-auto">
+            {/* 用 mt-auto 貼底：內容比螢幕高時上方仍可捲到（items-end 會把頂端切掉） */}
+            <div className="hd bg-cream w-full max-w-sm p-5 mt-auto sm:mt-4 mb-4" style={{ boxShadow: '6px 6px 0 #2A2A2A' }}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-ink flex items-center gap-2">
                   <img src={CATS.stretch} alt="" className="cat h-9 w-auto" />
