@@ -180,10 +180,34 @@
     .cat-sway { animation: catSway 3.6s ease-in-out infinite; }
 
     img.cat { user-select: none; -webkit-user-drag: none; pointer-events: none; }
+
+    @keyframes meowSpin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body class="selection:bg-mist-300">
-  <div id="root"></div>
+  <div id="root">
+    <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:#E8EFF3; color:#2A2A2A; font-family:sans-serif;">
+      <div style="width:40px; height:40px; border:4px solid #C2D4DE; border-top-color:#566E7F; border-radius:50%; animation:meowSpin 0.8s linear infinite;"></div>
+      <div style="font-weight:bold;">喵喵記帳載入中...</div>
+    </div>
+  </div>
+
+  <script>
+    // 看門狗：如果 App 一直沒成功掛載（通常是網路太慢，CDN 的 React/Babel 等還沒載完），
+    // 就顯示提示而不是讓使用者一直看著空白畫面。
+    window.__appMounted = false;
+    setTimeout(function () {
+      if (window.__appMounted) return;
+      var root = document.getElementById('root');
+      if (!root) return;
+      root.innerHTML =
+        '<div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:24px; text-align:center; background:#E8EFF3; color:#2A2A2A; font-family:sans-serif;">' +
+          '<div style="font-size:1.1rem; font-weight:bold;">喵喵記帳載入有點慢喵</div>' +
+          '<div style="font-size:0.9rem; color:#566E7F;">可能是網路不穩，連線到需要的資源比較慢</div>' +
+          '<button onclick="location.reload()" style="margin-top:8px; padding:10px 28px; border-radius:999px; border:3px solid #2A2A2A; background:#A5C0CE; color:#2A2A2A; font-weight:bold; font-size:0.95rem;">重新整理</button>' +
+        '</div>';
+    }, 12000);
+  </script>
 
   <script type="text/babel">
     const { useState, useMemo, useEffect, useRef } = React;
@@ -252,7 +276,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v17';
+    const APP_VERSION = 'v18';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
@@ -3848,6 +3872,7 @@
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
+    window.__appMounted = true;
   </script>
 
   <script>
