@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meow-ledger-cache-v2';
+const CACHE_NAME = 'meow-ledger-cache-v3';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
@@ -7,12 +7,26 @@ const APP_SHELL = [
   './apple-touch-icon.png'
 ];
 
-// 這些是外部 CDN 載入的 React / Babel / 圖表等「引擎」，體積大但幾乎不會變。
-// 用快取優先策略：抓過一次後，之後開 App 不必再等網路把這幾 MB 重新載一次。
-const VENDOR_HOSTS = ['unpkg.com', 'cdn.tailwindcss.com'];
+// React / Babel / Recharts 等「引擎」：現在大多放在自己的 vendor/ 資料夾裡自己託管
+// （只剩 Tailwind 還是吃 CDN），體積大但幾乎不會變。開 App 時主動預先存起來，
+// 之後不管網路好不好都能馬上用快取，不用再等它們載完才看得到畫面。
+const VENDOR_FILES = [
+  './vendor/react.production.min.js',
+  './vendor/react-dom.production.min.js',
+  './vendor/babel.min.js',
+  './vendor/prop-types.min.js',
+  './vendor/react-is.production.min.js',
+  './vendor/recharts.js',
+  './vendor/phosphor/bold/style.css',
+  './vendor/phosphor/bold/Phosphor-Bold.woff2',
+  './vendor/phosphor/fill/style.css',
+  './vendor/phosphor/fill/Phosphor-Fill.woff2'
+];
+const VENDOR_HOSTS = ['cdn.tailwindcss.com'];
 const isVendorRequest = (url) => {
   try {
-    return VENDOR_HOSTS.includes(new URL(url).hostname);
+    const u = new URL(url, self.location.href);
+    return VENDOR_HOSTS.includes(u.hostname) || u.pathname.includes('/vendor/');
   } catch {
     return false;
   }
@@ -23,7 +37,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return Promise.all(
-        APP_SHELL.map((url) =>
+        [...APP_SHELL, ...VENDOR_FILES].map((url) =>
           cache.add(url).catch((err) => console.warn('快取失敗，略過:', url, err))
         )
       );

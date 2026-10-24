@@ -31,15 +31,16 @@
       }
     }
   </script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <!-- 修復：加入 Recharts 所需的 react-is 依賴與指定穩定的套件版本 -->
-  <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
-  <script src="https://unpkg.com/react-is@18.2.0/umd/react-is.production.min.js"></script>
-  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- 這幾個以前每次都跟 unpkg.com 現場要，網路差時整個 App 會卡成白畫面。
+       改成放在 repo 裡自己託管，Service Worker 裝好後就不用再看網路臉色。 -->
+  <script src="vendor/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="vendor/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script src="vendor/babel.min.js"></script>
+  <script src="vendor/prop-types.min.js"></script>
+  <script src="vendor/react-is.production.min.js"></script>
+  <script src="vendor/recharts.js"></script>
+  <link rel="stylesheet" href="vendor/phosphor/bold/style.css">
+  <link rel="stylesheet" href="vendor/phosphor/fill/style.css">
 
   <style>
     @font-face {
@@ -276,7 +277,7 @@
     const ymOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 
     // 字體大小選項（乘在自動縮放後的基準字級上）
-    const APP_VERSION = 'v18';
+    const APP_VERSION = 'v19';
 
     const FONT_SCALES = [
       { id: 's',  label: '小',   value: 0.88 },
